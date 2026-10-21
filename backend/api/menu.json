@@ -1,0 +1,58 @@
+[
+  {
+    "n": "Churrasco a la brasa",
+    "d": "Corte de res, papa criolla y chimichurri.",
+    "p": 42000,
+    "c": "Platos fuertes",
+    "col": "#C8452D"
+  },
+  {
+    "n": "Pollo asado",
+    "d": "Medio pollo marinado con hierbas y limón.",
+    "p": 34000,
+    "c": "Platos fuertes",
+    "col": "#E08A2B"
+  },
+  {
+    "n": "Trucha al ajillo",
+    "d": "Con arroz de coco y ensalada fresca.",
+    "p": 38000,
+    "c": "Platos fuertes",
+    "col": "#3F7F68"
+  },
+  {
+    "n": "Empanadas (3)",
+    "d": "Rellenas de carne, con ají de la casa.",
+    "p": 12000,
+    "c": "Entradas",
+    "col": "#F2A33A"
+  },
+  {
+    "n": "Chicharrón crocante",
+    "d": "Con arepa y hogao.",
+    "p": 16000,
+    "c": "Entradas",
+    "col": "#B5651D"
+  },
+  {
+    "n": "Limonada de coco",
+    "d": "Cremosa y bien fría.",
+    "p": 9000,
+    "c": "Bebidas",
+    "col": "#6FAF8F"
+  },
+  {
+    "n": "Jugo de lulo",
+    "d": "Natural, en agua o en leche.",
+    "p": 8000,
+    "c": "Bebidas",
+    "col": "#9CB83C"
+  },
+  {
+    "n": "Tres leches",
+    "d": "Postre de la casa con canela.",
+    "p": 14000,
+    "c": "Postres",
+    "col": "#D6336C"
+  }
+]

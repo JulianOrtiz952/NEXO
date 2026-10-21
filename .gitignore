@@ -1,0 +1,14 @@
+**/.venv/
+**/__pycache__/
+*.py[cod]
+*.sqlite3
+node_modules/
+dist/
+.env
+.env.local
+*.log
+
+# Archivos auxiliares de trabajo local
+nexo-backlog/
+.env.*
+!.env.example
