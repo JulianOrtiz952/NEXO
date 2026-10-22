@@ -20,7 +20,7 @@ cd frontend
 npm run dev
 ```
 
-Abre http://localhost:5173. NEXO incluye un resumen de gestión, un plano de mesas interactivo, un tablero de cocina y una carta con búsqueda y filtros. El diseño usa tonos crema y dorado con navegación lateral oscura.
+Abre http://localhost:5173 para ver la bienvenida. El panel de demostración está en http://localhost:5173/example. NEXO incluye un resumen de gestión, un plano de mesas interactivo, un tablero de cocina y una carta con búsqueda y filtros. El diseño usa tonos crema y dorado con navegación lateral oscura.
 
 Los ocho productos y sus precios se consultan desde `GET /api/menu/` (datos en `backend/api/menu.json`). Las métricas, mesas y pedidos son de demostración. Los pedidos creados en el plano pasan al tablero de cocina y permiten avanzar su estado durante la sesión; no se guardan en el servidor. Las imágenes de platos son ilustrativas y se sirven desde Unsplash; las fuentes usan Google Fonts. `GET /api/health/` sigue disponible para comprobar el backend.
 
