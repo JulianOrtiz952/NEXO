@@ -26,6 +26,7 @@
 **Resultado esperado:** Login, roles locales, membresía por restaurante, autorización y auditoría base.
 
 **Avance DN-19 / DN-21 / DN-17 / DN-18 (2026-10-22):**
+- [x] Corrección del entorno local DN-23 / RF-007 (2026-10-27): el backend de 8000 seguía ejecutando la versión anterior con `--noreload` y devolvía 405 al cambiar roles. Reiniciado con recarga automática. Verificado PATCH directo y vía proxy 5173: ambos llegan al validador de roles (400 esperado para rol inválido), sin modificar usuarios reales. Cinco pruebas RF-007, lint y build correctos. Validación final del usuario y cierre en Jira reservados al usuario.
 - [x] DN-23 / RF-007 (2026-10-27): cambio de roles existentes desde Usuarios y roles, autorizado para OWNER/ADMIN dentro de su restaurante; rechazo de IDs ajenos, roles inválidos y campos de privilegios globales. Auditoría anterior/nuevo atómica y permisos vigentes en sesiones abiertas. Sin migraciones ni dependencias nuevas.
 - [x] Validación DN-23: 25 pruebas Django, comprobación de Django, lint y build correctos; prueba específica repetida tras ajustar la aserción de persistencia. Navegador con BD temporal: Mesero → Cocina, persistencia tras recargar, vista móvil de 390 px y cambio del propio Dueño a Cocina con retirada inmediata del directorio y formularios de usuarios.
 - [x] Corrección DN-18 / RF-002 (2026-10-27): actualizar perfil/permisos al comprobar sesión y recuperar foco; limpiar datos al perder acceso, e invalidar respuestas antiguas para que no restauren pantallas revocadas.
