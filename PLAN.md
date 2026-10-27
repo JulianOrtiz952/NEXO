@@ -13,7 +13,7 @@
 - No deducir que algo está terminado de la documentación. Ejecutar pruebas automáticas y manuales, lint/tipos y validación de aislamiento antes de marcar cada tarea.
 
 ## Sprint 00 — Preparación técnica transversal (no es un Sprint adicional en el cronograma oficial)
-- [ ] Auditar estructura y stack real existente; confirmar continuidad o aprobar migración.
+- [x] Auditar estructura y stack real existente; confirmar continuidad o aprobar migración. Django + DRF, React/Vite y SQLite; continuidad aprobada en este chat.
 - [ ] Verificar Git, configuración, variables de entorno, calidad y pruebas.
 - [ ] Definir esquema y política multi-tenant, roles locales, aislamiento, CA de seguridad.
 - [ ] Preparar errores, moneda/decimales, idempotencia, transacciones y auditoría base.
@@ -24,6 +24,20 @@
 ### Sprint 01 — Autenticación, usuarios y roles [MVP]
 **RF:** RF-001–009; RF-223–224; RF-233–235.
 **Resultado esperado:** Login, roles locales, membresía por restaurante, autorización y auditoría base.
+
+**Avance DN-19 / DN-21 / DN-17 / DN-18 (2026-10-22):**
+- [x] Corrección DN-18 / RF-002 (2026-10-27): actualizar perfil/permisos al comprobar sesión y recuperar foco; limpiar datos al perder acceso, e invalidar respuestas antiguas para que no restauren pantallas revocadas.
+- [x] Validación de la corrección DN-18: cuatro comprobaciones del frontend con respuestas controladas (cambio de rol, respuesta obsoleta, revocación 403 y propagación de estado HTTP); lint y build sin advertencias. No sustituye la prueba manual en navegador.
+- [x] DN-19 / RF-003: cinco roles locales, restaurante y membresía única por usuario operativo.
+- [x] DN-21 / RF-005: alta por Dueño/Administrador, validación y hash de contraseña, asignación inicial de rol y registro de auditoría. Incluye la asignación inicial de DN-23 / RF-007, no una pantalla para cambiar roles existentes.
+- [x] DN-17 / RF-001: login integrado, token opaco almacenado como hash, vencimiento fijo de una hora y logout con revocación.
+- [x] DN-18 / RF-002: permisos en servidor para operaciones implementadas y módulos visibles según rol; Caja hereda Mesero. Los módulos operativos futuros siguen sus sprints.
+- [x] CA aprobados en este chat: un restaurante por usuario operativo; rechazo de accesos cruzados, membresía/usuario/restaurante inactivos; rol local sin privilegios globales. Administrador global separado: crea/activa/desactiva restaurantes y asigna Dueños, sin acceso operativo automático.
+- [x] Verificación automática: 16 pruebas Django, lint y build frontend; aplicación y reversión de migraciones en BD en memoria.
+- [x] Aplicación de las migraciones 0001/0002 a la base local autorizada por el usuario (2026-10-27), con respaldo SQLite previo. RF-001, RF-003, RF-005, RNF-007: 16 pruebas Django, lint y build correctos; backend, frontend y proxy `/api/health/` responden HTTP 200 tras reiniciar los servidores.
+- [x] Ampliación aprobada DN-21 / RF-005 (2026-10-27): administrador global crea futuros Dueños desde la interfaz y los selecciona por correo para vincular restaurantes nuevos o existentes; Dueño/Administrador conservan el alta local. Sin migraciones ni dependencias nuevas.
+- [x] Interfaz del portal con diseño NEXO y flujo comprobado en navegador con BD QA aislada: alta global → selección por correo → restaurante → login del Dueño → alta y consulta de Mesero. 20 pruebas Django, lint y build correctos.
+- [ ] Conciliación del estado en Jira. No se declara completado todo el Sprint 01.
 - [ ] Historias/tareas y CA acordados en Jira.
 - [ ] Backend + frontend + persistencia integrada cuando corresponda.
 - [ ] Pruebas funcionales, autorizaciones, aislamiento entre restaurantes y regresión.
@@ -166,9 +180,9 @@
 - [ ] Código validado, pruebas ejecutadas, sin secretos y con documentación actualizada.
 
 ## Decisiones abiertas / bloqueos
-- [ ] Rol y facultades del administrador global de NEXO; alta de restaurantes.
-- [ ] Un usuario en uno o varios restaurantes; selección de contexto y membresías.
-- [ ] Stack actual confirmado con evidencia del repositorio.
+- [x] Rol y facultades del administrador global de NEXO: crear/activar/desactivar restaurantes y asignar Dueño, sin acceso operativo automático.
+- [x] Un usuario en uno o varios restaurantes: aprobado un restaurante por usuario operativo en este alcance.
+- [x] Stack confirmado: Django + DRF, React/Vite, SQLite.
 - [ ] Permiso del Mesero para finalizar/cobrar (RF-145).
 - [ ] Costeo de inventario y snapshots de costos (RF-086, RN-099).
 - [ ] Cambios de receta, exclusiones y modificaciones una vez enviado.

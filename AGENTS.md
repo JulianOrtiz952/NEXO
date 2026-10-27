@@ -68,12 +68,14 @@ Si se confirma esta arquitectura, cada módulo: `service` (lógica), `repository
 - Escribe tests para reglas de negocio críticas (inventario, cuentas, caja, permisos).
 - Corre lint, tipos y tests antes de decir que terminaste.
 - Al terminar, marca el paso en `PLAN.md`, y explica qué cambiaste en pocas líneas.
+- Un DN con interacción de usuario solo está completo cuando incluye una interfaz funcional conectada al backend y con el diseño visual de NEXO (crema/dorado, navegación y componentes coherentes, responsiva y accesible). No darlo por terminado con API, formularios sin diseño o datos de demostración; validar el flujo en navegador y sus permisos.
+- El administrador global debe poder crear desde su interfaz las cuentas operativas de futuros Dueños y vincularlas a restaurantes; no exigir consola ni IDs introducidos manualmente para ese flujo. Dueño y Administrador deben poder crear usuarios de su propio restaurante desde su interfaz. Esto no concede acceso global a datos operativos ni permite crear administradores globales desde formularios.
 - Si repites un error que ya te corregí, avísame para agregar una regla aquí.
 
 ## Convenciones
 - Código e identificadores en **inglés**; textos de UI y documentación en **español**.
 - Glosario: Cuenta=`Tab`, Pedido=`Order`, Detalle=`OrderItem`, Mesa=`Table`, Insumo=`Ingredient`, Receta=`Recipe`, Merma=`Waste`.
-- Roles locales por restaurante: `OWNER`, `ADMIN`, `CASHIER`, `WAITER`, `KITCHEN`. Caja hereda las funciones operativas de Mesero. Un posible rol global de operador de NEXO queda **pendiente de definición**.
+- Roles locales por restaurante: `OWNER`, `ADMIN`, `CASHIER`, `WAITER`, `KITCHEN`. Caja hereda las funciones operativas de Mesero. Administrador global aprobado: crea/activa/desactiva restaurantes, crea futuros Dueños y los vincula; no obtiene acceso automático a empleados, ventas, caja ni otros datos operativos. Los formularios no conceden privilegios globales.
 - Errores al usuario: claros, en español, indicando qué pasó y cómo resolverlo (RNF-033).
 - UI táctil, responsiva, y nunca depender solo del color para un estado (RNF-029, RNF-031).
 - Confirmación antes de acciones críticas: cerrar caja/cuenta, anular, ajustar inventario (RNF-032).

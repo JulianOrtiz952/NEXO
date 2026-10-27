@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Login from './Login.jsx'
 import Welcome from './Welcome.jsx'
+import Identity from './Identity.jsx'
 import './App.css'
 const dining = 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1200&q=85'
 const food = ['photo-1546069901-ba9599a7e63c', 'photo-1568901346375-23c9450c58cd', 'photo-1512621776951-a57141f2eefd', 'photo-1467003909585-2f8a72700288', 'photo-1571877227200-a0d98ea607e9']
@@ -88,6 +89,7 @@ function Workspace() {
 export default function App() {
   const path = window.location.pathname.replace(/\/+$/, '') || '/'
   if (['/login', '/login.html'].includes(path)) return <Login />
+  if (path === '/app') return <Identity />
   if (path === '/example') return <Workspace />
   if (path === '/') return <Welcome />
   return <main className="not-found"><a className="welcome-logo" href="/">NEX<span>O</span></a><h1>Esta página aún no existe.</h1><p>Vuelve al inicio para descubrir NEXO.</p><a className="welcome-primary" href="/">Volver al inicio →</a></main>

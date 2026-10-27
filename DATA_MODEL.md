@@ -1,6 +1,8 @@
 # Modelo de datos propuesto (borrador, revisar antes de migrar)
 
 ## Alcance y estado
+- **Implementación inicial DN-19/21/17/18 (2026-10-22):** Django/DRF + SQLite y React/Vite. `Restaurant` usa UUID; se conserva `auth.User` de Django y su PK existente. `Membership` usa OneToOne con usuario y rol local; `AccessToken` guarda solo SHA-256 y vencimiento fijo de una hora. `AuditLog` registra altas y cambios administrativos sin API de edición/borrado. Las migraciones se probaron y revirtieron en memoria; su aplicación local espera revisión del usuario.
+- Política aprobada: el administrador global es una identidad separada (`is_superuser`, sin necesidad de `is_staff`); crea/activa/desactiva restaurantes y asigna Dueños. Las API operativas lo rechazan. Los cinco roles locales no conceden este privilegio y el alta de usuarios ignora privilegios globales o tenants del payload.
 - **Borrador conceptual, no esquema aprobado ni migración ejecutada.** Confirmar stack, modelo de autenticación y relaciones antes de generar migraciones.
 - NEXO opera **restaurantes independientes (tenants)** desde el MVP. `Branch` (múltiples sedes del mismo restaurante) sería una capacidad distinta y posterior (RNF-039, V2).
 - Las entidades aquí descritas son propuestas de diseño derivadas de RF/RNF/RN y de la decisión multi-tenant, no requisitos aprobados automáticamente.
@@ -53,8 +55,8 @@
 - El acceso a exportaciones, búsquedas, cachés y notificaciones debe aplicar el mismo aislamiento de tenant que la BD.
 
 ## Preguntas de modelado pendientes de decisión
-1. Relación exacta entre usuario, uno o varios restaurantes y el selector de contexto.
-2. Ciclo de vida de restaurantes y privilegios del administrador global de NEXO.
+1. Resuelto para este alcance: un restaurante por usuario operativo; sin selector multi-restaurante.
+2. Resuelto para este alcance: administrador global separado, alta/activación/desactivación de restaurantes y asignación de Dueños, sin acceso operativo automático. No se implementan eliminación de restaurantes ni suplantación.
 3. Momento de captura de snapshots, política de costeo y cambios de receta tras el envío a cocina.
 4. Política para modificaciones, exclusiones y consumo adicional de ingredientes en pedidos ya enviados.
 5. ¿Qué constituye un ajuste confirmado del conteo final de cocina (RF-243–245)?

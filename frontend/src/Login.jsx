@@ -1,10 +1,20 @@
 import { useState } from 'react'
+import { api } from './identityApi.js'
 export default function Login() {
   const [visible, setVisible] = useState(false)
   const [message, setMessage] = useState('')
-  function submit(event) {
+  const [busy, setBusy] = useState(false)
+  async function submit(event) {
     event.preventDefault()
-    setMessage('El inicio de sesión todavía no está habilitado. No se enviaron tus credenciales.')
+    const data = Object.fromEntries(new FormData(event.currentTarget))
+    setBusy(true); setMessage('')
+    sessionStorage.removeItem('nexo-token')
+    try {
+      const result = await api('auth/login/', { method: 'POST', body: JSON.stringify(data) })
+      sessionStorage.setItem('nexo-token', result.token)
+      window.location.assign('/app')
+    } catch (error) { setMessage(error.message) }
+    finally { setBusy(false) }
   }
   return (
 <div className="login">
@@ -17,7 +27,7 @@ export default function Login() {
   <main className="panel">
     <div className="card">
       <h2>Bienvenido de nuevo</h2>
-      <p>Vista previa del acceso. La autenticación estará disponible próximamente.</p>
+      <p>Ingresa con tu cuenta. La sesión vence después de una hora.</p>
       <form onSubmit={submit}>
         <div className="field">
           <label htmlFor="email">Correo electrónico</label>
@@ -30,12 +40,11 @@ export default function Login() {
         </div>
         <div className="err" role="status">{message}</div>
         <div className="meta">
-          <label><input type="checkbox" /> Recordarme</label>
           <span>Recuperación pendiente</span>
         </div>
-        <button className="btn" type="submit">Iniciar sesión</button>
+        <button className="btn" type="submit" disabled={busy}>{busy ? 'Ingresando…' : 'Iniciar sesión'}</button>
       </form>
-      <p className="alt">¿Aún no tienes cuenta? <span>Registro próximamente</span></p>
+      <p className="alt">Solicita tu cuenta al administrador de tu restaurante.</p>
     </div>
   </main>
 </div>
