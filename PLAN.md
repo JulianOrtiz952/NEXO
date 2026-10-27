@@ -26,6 +26,7 @@
 **Resultado esperado:** Login, roles locales, membresía por restaurante, autorización y auditoría base.
 
 **Avance DN-19 / DN-21 / DN-17 / DN-18 (2026-10-22):**
+- [x] RNF-033 / RF-007 (2026-10-27): el cliente muestra un error claro en español ante respuestas HTML del servidor y conserva el estado HTTP, en lugar de exponer `Unexpected token`. Siete comprobaciones con respuestas controladas, lint y build correctos. El 500 local por ausencia de `initial_owner_id` sigue pendiente de aplicar la migración 0003 revisada por el usuario.
 - [x] Ampliación aprobada DN-23 / RF-007 (2026-10-27): proteger al primer Dueño frente a cambios locales y conservar al menos un Dueño con cuenta/membresía activas; excepción global limitada al primer Dueño, con auditoría atómica y serialización por restaurante. Interfaz NEXO con explicación de bloqueos y formulario global específico.
 - [x] Validación de esta ampliación: 34 pruebas Django (incluye concurrencia, migración/reversión, permisos y aislamiento), check y consistencia de migraciones correctos; lint/build correctos, sin script de typecheck en JavaScript. Navegador sobre BD temporal: primer Dueño bloqueado localmente, excepción global con segundo Dueño activo, único Dueño bloqueado y vista móvil de 390 px. Migración/reversión comprobadas además sobre copia de la base local; primer Dueño existente identificado por auditoría.
 - [ ] Revisar y aplicar migración 0003 a la base local con respaldo previo; verificar el servidor local después. Validación del usuario pendiente; no cerrar Jira.
