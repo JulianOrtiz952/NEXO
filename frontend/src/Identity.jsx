@@ -86,6 +86,16 @@ export default function Identity() {
     } catch (error) { await handleError(error) }
     finally { setBusy(false) }
   }
+  async function updateRole(event, id) {
+    event.preventDefault()
+    const role = new FormData(event.currentTarget).get('role')
+    setBusy(true); setMessage('')
+    try {
+      await api('users/', { method: 'PATCH', body: JSON.stringify({ id, role }) })
+      if (await refresh()) setMessage('Rol actualizado. Los permisos ya están vigentes.')
+    } catch (error) { await handleError(error) }
+    finally { setBusy(false) }
+  }
   if (!user) return <main className="identity-gate"><a className="welcome-logo" href="/">NEX<span>O</span></a><h1>Tu espacio en NEXO</h1><p role="status">{message || 'Validando tu acceso…'}</p><a className="identity-primary" href="/login">Iniciar sesión →</a></main>
   const platform = user.role === 'PLATFORM_ADMIN'
   const canManage = user.modules.includes('users')
@@ -124,7 +134,12 @@ export default function Identity() {
           {!rows.length ? <p className="identity-empty">{platform ? 'Tu primer restaurante empieza arriba. Crea una cuenta y vincula su espacio.' : 'Todavía no hay usuarios para mostrar.'}</p> : <ul className="identity-list">{rows.map(row => <li key={row.id}>{platform ? <>
             <div className="identity-row-heading"><div><h3>{row.name}</h3><p>{row.owners.map(owner => owner.email).join(', ') || 'Sin Dueño activo'}</p></div><span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span></div>
             <form className="identity-update" onSubmit={event => updateRestaurant(event, row.id)}><fieldset disabled={busy}><label>Estado<select name="is_active" defaultValue={String(row.is_active)} key={String(row.is_active)}><option value="true">Activo</option><option value="false">Inactivo</option></select></label><label>Vincular otro Dueño<select name="owner" defaultValue=""><option value="">Conservar asignación actual</option>{owners.map(owner => <option key={owner.id} value={owner.id}>{owner.email}</option>)}</select></label><button className="identity-secondary" type="submit">Guardar cambios</button></fieldset></form>
-          </> : <div className="identity-row-heading"><div className="identity-person"><span className="identity-avatar">{row.email.slice(0, 1).toUpperCase()}</span><div><h3>{row.email}</h3><p>Miembro de {user.restaurant.name}</p></div></div><span className="identity-badge">{roles[row.role]}</span></div>}</li>)}</ul>}
+          </> : <>
+            <div className="identity-row-heading"><div className="identity-person"><span className="identity-avatar">{row.email.slice(0, 1).toUpperCase()}</span><div><h3>{row.email}</h3><p>Miembro de {user.restaurant.name}</p></div></div><span className="identity-badge">{roles[row.role]}</span></div>
+            <form className="identity-update identity-role-update" aria-label={`Cambiar rol de ${row.email}`} onSubmit={event => updateRole(event, row.id)}>
+              <fieldset disabled={busy}><label>Rol de {row.email}<select name="role" defaultValue={row.role} key={row.role}>{Object.entries(roles).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button className="identity-secondary" type="submit">Guardar rol</button></fieldset>
+            </form>
+          </>}</li>)}</ul>}
         </section>}
         <section className="identity-access" id="access"><h2>Tus módulos autorizados</h2><div>{user.modules.map(module => <span key={module}>{labels[module]}</span>)}</div>{!platform && <p>Los módulos operativos se incorporarán en sus sprints correspondientes.</p>}</section>
         <footer className="identity-footer">NEXO · Cada conexión cuenta.</footer>

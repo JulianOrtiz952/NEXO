@@ -37,11 +37,14 @@ La reversión de las tablas nuevas es `manage.py migrate api zero`: elimina dato
 - `/example`: demostración pública con datos ficticios; `/api/menu/` sigue siendo el catálogo estático de la demo y no contiene datos privados de tenants.
 - POST `/api/auth/login/`, POST `/api/auth/logout/`, GET `/api/auth/me/`.
 - GET/POST `/api/users/`: requiere OWNER/ADMIN local.
+- PATCH `/api/users/` (DN-23 / RF-007): `id` del usuario y `role` local obligatorio. Solo OWNER/ADMIN de su restaurante; IDs ajenos o inexistentes responden 404, roles inválidos o campos adicionales responden 400. No modifica identidad, contraseña, membresía de restaurante ni privilegios globales. El cambio genera `user.role_changed` con rol anterior/nuevo en la misma transacción; guardar el rol vigente no genera otro evento. Permite cambiar el propio rol, con retirada inmediata de permisos si corresponde.
 - GET/POST `/api/platform/owners/`: solo administrador global; lista candidatos sin restaurante y crea cuentas sin membresía ni privilegios globales. POST: `email`, `password`.
 - GET/POST/PATCH `/api/platform/restaurants/`: requiere administrador global. POST: `name`, `owner` (ID). PATCH: `id`, `is_active` y/o `owner`.
 - Autenticación: `Authorization: Bearer <token>`.
 
 ## Validación
+
+DN-23 / RF-007 (2026-10-27): 25 pruebas Django, `manage.py check`, lint y build correctos. Cinco pruebas nuevas cubren ambos roles gestores y los cinco roles destino, persistencia, aislamiento entre dos restaurantes, privilegios manipulados, acceso anónimo/global/operativo, sesión abierta, operaciones sin cambios y reversión si falla la auditoría. Flujo real comprobado en navegador sobre BD temporal con usuarios ficticios: cambio Mesero → Cocina, recarga, diseño móvil a 390 px y cambio propio Dueño → Cocina, retirando directorio y formularios. No hay script de typecheck en este frontend JavaScript.
 
 20 pruebas Django (17 de identidad y 3 existentes), lint frontend y build. Se prueban accesos cruzados y payloads manipulados, roles, contraseñas, revocación, expiración fija, estados inactivos y límites de administración global. Incluye el flujo alta global → asignación de restaurante → login del Dueño → alta local, y el rechazo de candidatos globales a todos los roles locales. No hay script de typecheck: el frontend existente usa JavaScript.
 

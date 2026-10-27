@@ -105,9 +105,37 @@ def manager(request):
     return membership
 
 
-@api_view(['GET', 'POST'])
+@api_view(['GET', 'POST', 'PATCH'])
 def users(request):
     m = manager(request)
+    if request.method == 'PATCH':
+        # RF-007, RNF-004, RNF-007: local authorization and atomic role audit.
+        class RoleUpdate(serializers.Serializer):
+            id = serializers.IntegerField(min_value=1)
+            role = serializers.ChoiceField(choices=Membership.Role.choices)
+
+            def validate(self, data):
+                if set(self.initial_data) - {'id', 'role'}:
+                    raise serializers.ValidationError('Solo puedes modificar el rol en esta operación.')
+                return data
+
+        serializer = RoleUpdate(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        with transaction.atomic():
+            memberships = Membership.objects.select_for_update().filter(restaurant=m.restaurant)
+            actor = memberships.get(user=request.user)
+            if actor.role not in ['OWNER', 'ADMIN'] or not actor.is_active:
+                raise PermissionDenied('No tienes permiso para administrar usuarios.')
+            target = memberships.select_related('user').filter(user_id=data['id'], user__is_superuser=False).first()
+            if not target:
+                return Response({'detail': 'Usuario no encontrado en tu restaurante.'}, status=404)
+            previous = target.role
+            if previous != data['role']:
+                target.role = data['role']
+                target.save(update_fields=['role'])
+                AuditLog.objects.create(restaurant=m.restaurant, actor=request.user, action='user.role_changed', entity_id=str(target.user_id), before={'role': previous}, after={'role': target.role})
+            return Response({'id': target.user_id, 'email': target.user.email, 'role': target.role})
     if request.method == 'GET':
         return Response([{'id': x.user_id, 'email': x.user.email, 'role': x.role} for x in Membership.objects.filter(restaurant=m.restaurant).select_related('user')])
     serializer = UserInput(data=request.data)

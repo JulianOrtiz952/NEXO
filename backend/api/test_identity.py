@@ -44,6 +44,70 @@ class IdentityTests(APITestCase):
         token.save()
         self.assertEqual(self.client.get('/api/auth/me/').status_code, 401)
 
+    def test_rf007_managers_change_roles_and_audit_without_changing_identity(self):
+        target = self.make_user('employee@a.co', self.a)
+        original_password = target.password
+        for role in ['OWNER', 'ADMIN']:
+            actor = self.make_user(f'manager-{role}@a.co', self.a, role)
+            self.login(actor)
+            for assigned in Membership.Role.values:
+                previous = Membership.objects.get(user=target).role
+                response = self.client.patch('/api/users/', {'id': target.pk, 'role': assigned}, format='json')
+                self.assertEqual(response.status_code, 200, response.data)
+                rows = self.client.get('/api/users/').data
+                self.assertEqual(next(row['role'] for row in rows if row['id'] == target.pk), assigned)
+                self.assertEqual(Membership.objects.get(user=target).role, assigned)
+                if assigned != previous:
+                    entry = AuditLog.objects.latest('pk')
+                    self.assertEqual((entry.actor, entry.restaurant, entry.entity_id), (actor, self.a, str(target.pk)))
+                    self.assertEqual(entry.before, {'role': previous})
+                    self.assertEqual(entry.after, {'role': assigned})
+        target.refresh_from_db()
+        self.assertEqual(target.password, original_password)
+        self.assertFalse(target.is_superuser)
+
+    def test_rf007_rejects_foreign_missing_invalid_and_forged_updates(self):
+        self.login(self.owner)
+        for target in [self.other.pk, self.platform.pk, 999999]:
+            response = self.client.patch('/api/users/', {'id': target, 'role': 'ADMIN'}, format='json')
+            self.assertEqual(response.status_code, 404)
+        for payload in [
+            {'id': self.owner.pk, 'role': 'PLATFORM_ADMIN'},
+            {'id': self.owner.pk, 'role': 'INVALID'},
+            {'id': self.owner.pk},
+            {'id': self.owner.pk, 'role': 'ADMIN', 'restaurant_id': str(self.b.pk)},
+            {'id': self.owner.pk, 'role': 'ADMIN', 'is_superuser': True},
+        ]:
+            self.assertEqual(self.client.patch('/api/users/', payload, format='json').status_code, 400)
+        self.assertEqual(Membership.objects.get(user=self.owner).role, 'OWNER')
+        self.assertEqual(Membership.objects.get(user=self.other).role, 'OWNER')
+        self.assertFalse(AuditLog.objects.exists())
+
+    def test_rf007_non_managers_and_anonymous_cannot_change_roles(self):
+        self.assertEqual(self.client.patch('/api/users/', {'id': self.owner.pk, 'role': 'ADMIN'}, format='json').status_code, 401)
+        for actor in [self.platform] + [self.make_user(f'blocked-{role}@a.co', self.a, role) for role in ['CASHIER', 'WAITER', 'KITCHEN']]:
+            self.login(actor)
+            self.assertEqual(self.client.patch('/api/users/', {'id': self.owner.pk, 'role': 'ADMIN'}, format='json').status_code, 403)
+        self.assertFalse(AuditLog.objects.exists())
+
+    def test_rf007_self_change_updates_existing_session_and_same_role_is_noop(self):
+        self.login(self.owner)
+        payload = {'id': self.owner.pk, 'role': 'OWNER'}
+        self.assertEqual(self.client.patch('/api/users/', payload, format='json').status_code, 200)
+        self.assertFalse(AuditLog.objects.exists())
+        payload['role'] = 'KITCHEN'
+        self.assertEqual(self.client.patch('/api/users/', payload, format='json').status_code, 200)
+        self.assertEqual(self.client.get('/api/auth/me/').data['modules'], ['kitchen'])
+        self.assertEqual(self.client.patch('/api/users/', {'id': self.owner.pk, 'role': 'OWNER'}, format='json').status_code, 403)
+
+    def test_rf007_audit_failure_rolls_back_role_change(self):
+        from unittest.mock import patch
+        self.login(self.owner)
+        with patch('api.identity.AuditLog.objects.create', side_effect=RuntimeError('audit unavailable')):
+            with self.assertRaises(RuntimeError):
+                self.client.patch('/api/users/', {'id': self.owner.pk, 'role': 'ADMIN'}, format='json')
+        self.assertEqual(Membership.objects.get(user=self.owner).role, 'OWNER')
+
     def test_bad_password_and_inactive_identity_create_no_token(self):
         self.assertEqual(self.client.post('/api/auth/login/', {'email': self.owner.email, 'password': 'wrong'}).status_code, 401)
         self.owner.is_active = False
