@@ -17,7 +17,7 @@ Implementa RF-003, RF-005, RF-001 y RF-002. Incluye asignación inicial de RF-00
 
 ## Migraciones para revisión
 
-`backend/api/migrations/0003_restaurant_initial_owner.py` (RF-007): agrega una referencia protegida al usuario del primer Dueño. Para datos existentes usa la primera evidencia de `restaurant.created`/`restaurant.owner_assigned`, verifica su pertenencia y que exista al menos un Dueño activo; si falta evidencia o Dueño activo, aborta sin inventar asignaciones. La reversión a `0002_auditlog` retira únicamente la referencia; conserva usuarios, roles, restaurantes y auditorías. Aplicación y reversión verificadas en base de pruebas. **Pendiente de revisión y aplicación a la base local.**
+`backend/api/migrations/0003_restaurant_initial_owner.py` (RF-007): agrega una referencia protegida al usuario del primer Dueño. Para datos existentes usa la primera evidencia de `restaurant.created`/`restaurant.owner_assigned`, verifica su pertenencia y que exista al menos un Dueño activo; si falta evidencia o Dueño activo, aborta sin inventar asignaciones. La reversión a `0002_auditlog` retira únicamente la referencia; conserva usuarios, roles, restaurantes y auditorías. Aplicación y reversión verificadas en base de pruebas. **Revisada y autorizada por el usuario; aplicada a la base local el 2026-10-27**, con respaldo verificado `backend/nexo-before-0003-20261027-185122.sqlite3`. Verificados HTTP 200 de perfil, restaurantes y usuarios por el proxy local; diez pruebas de login/propiedad, check, lint y build correctos.
 
 `backend/api/migrations/0001_initial.py`: crea Restaurant, Membership y AccessToken. Conserva el modelo de usuario de Django.
 
