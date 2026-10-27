@@ -10,4 +10,5 @@ urlpatterns += [
     path('users/', identity.users),
     path('platform/restaurants/', identity.restaurants),
     path('platform/owners/', identity.prospective_owners),
+    path('platform/initial-owner-role/', identity.initial_owner_role),
 ]

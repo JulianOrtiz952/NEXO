@@ -11,10 +11,13 @@ Implementa RF-003, RF-005, RF-001 y RF-002. Incluye asignación inicial de RF-00
 - El navegador guarda el token en sessionStorage. Cerrar una pestaña termina su almacenamiento; cerrar sesión lo revoca también en servidor. En despliegue, servir por HTTPS.
 - El administrador global puede crear/activar/desactivar restaurantes, crear cuentas de futuros Dueños y asignarlos, sin acceso automático a empleados, ventas, caja ni otros datos operativos. GET de candidatos solo muestra cuentas activas sin membresía; los restaurantes muestran el correo de sus Dueños como metadato de administración. Las cuentas de administrador global se crean mediante comando local; ningún formulario concede ese privilegio.
 - Asignar un Dueño agrega/promueve una membresía OWNER en ese restaurante. No traslada usuarios de otros restaurantes ni revoca a otros Dueños; un reemplazo exclusivo requiere definir el flujo correspondiente.
+- RF-007, ampliación aprobada el 2026-10-27: al menos un Dueño activo por restaurante (cuenta y membresía activas). `Restaurant.initial_owner` conserva la identidad del primer Dueño aunque un administrador global cambie su rol. Los gestores locales no pueden retirarle OWNER. La excepción global solo cambia el rol de esa cuenta y exige otro Dueño activo del mismo restaurante; no lista empleados ni concede acceso operativo. El chequeo, cambio y auditoría se serializan por restaurante. Ante contención SQLite se devuelve 409 para reintentar, sin aplicar parcialmente el cambio.
 - Caja incluye los módulos de Mesero. Los módulos operativos que aún no existen muestran únicamente su disponibilidad en el portal; su lógica llegará en los sprints planificados.
 - Altas de usuarios y operaciones globales generan auditoría atómica, sin contraseñas ni tokens y sin endpoints para editarla o eliminarla.
 
 ## Migraciones para revisión
+
+`backend/api/migrations/0003_restaurant_initial_owner.py` (RF-007): agrega una referencia protegida al usuario del primer Dueño. Para datos existentes usa la primera evidencia de `restaurant.created`/`restaurant.owner_assigned`, verifica su pertenencia y que exista al menos un Dueño activo; si falta evidencia o Dueño activo, aborta sin inventar asignaciones. La reversión a `0002_auditlog` retira únicamente la referencia; conserva usuarios, roles, restaurantes y auditorías. Aplicación y reversión verificadas en base de pruebas. **Pendiente de revisión y aplicación a la base local.**
 
 `backend/api/migrations/0001_initial.py`: crea Restaurant, Membership y AccessToken. Conserva el modelo de usuario de Django.
 
@@ -38,6 +41,8 @@ La reversión de las tablas nuevas es `manage.py migrate api zero`: elimina dato
 - POST `/api/auth/login/`, POST `/api/auth/logout/`, GET `/api/auth/me/`.
 - GET/POST `/api/users/`: requiere OWNER/ADMIN local.
 - PATCH `/api/users/` (DN-23 / RF-007): `id` del usuario y `role` local obligatorio. Solo OWNER/ADMIN de su restaurante; IDs ajenos o inexistentes responden 404, roles inválidos o campos adicionales responden 400. No modifica identidad, contraseña, membresía de restaurante ni privilegios globales. El cambio genera `user.role_changed` con rol anterior/nuevo en la misma transacción; guardar el rol vigente no genera otro evento. Permite cambiar el propio rol, con retirada inmediata de permisos si corresponde.
+- Ese PATCH rechaza quitar OWNER al primer Dueño (403) o al último Dueño activo (400). GET de usuarios incorpora `is_initial_owner` e `is_last_owner` para explicar el bloqueo en pantalla. Los demás Dueños pueden cambiar su propio rol si queda otro activo.
+- PATCH `/api/platform/initial-owner-role/`: exclusivo del administrador global; recibe `restaurant` y `role` local. Resuelve el primer Dueño en servidor, no admite seleccionar otro empleado ni modificar su identidad/tenant. Rechaza quitar OWNER sin otro Dueño activo (400), roles inválidos y campos adicionales (400). GET de restaurantes incluye solo correo y rol del primer Dueño como metadatos de administración. Formulario integrado en cada restaurante del panel global.
 - GET/POST `/api/platform/owners/`: solo administrador global; lista candidatos sin restaurante y crea cuentas sin membresía ni privilegios globales. POST: `email`, `password`.
 - GET/POST/PATCH `/api/platform/restaurants/`: requiere administrador global. POST: `name`, `owner` (ID). PATCH: `id`, `is_active` y/o `owner`.
 - Autenticación: `Authorization: Bearer <token>`.

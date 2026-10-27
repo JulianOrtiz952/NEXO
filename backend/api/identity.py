@@ -13,6 +13,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from .authentication import membership_for
 from .models import AccessToken, Membership, Restaurant, AuditLog
+from .ownership import active_owners, change_role
 
 User = get_user_model()
 ROLE_MODULES = {
@@ -122,22 +123,10 @@ def users(request):
         serializer = RoleUpdate(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        with transaction.atomic():
-            memberships = Membership.objects.select_for_update().filter(restaurant=m.restaurant)
-            actor = memberships.get(user=request.user)
-            if actor.role not in ['OWNER', 'ADMIN'] or not actor.is_active:
-                raise PermissionDenied('No tienes permiso para administrar usuarios.')
-            target = memberships.select_related('user').filter(user_id=data['id'], user__is_superuser=False).first()
-            if not target:
-                return Response({'detail': 'Usuario no encontrado en tu restaurante.'}, status=404)
-            previous = target.role
-            if previous != data['role']:
-                target.role = data['role']
-                target.save(update_fields=['role'])
-                AuditLog.objects.create(restaurant=m.restaurant, actor=request.user, action='user.role_changed', entity_id=str(target.user_id), before={'role': previous}, after={'role': target.role})
-            return Response({'id': target.user_id, 'email': target.user.email, 'role': target.role})
+        target = change_role(actor=request.user, restaurant_id=m.restaurant_id, user_id=data['id'], role=data['role'])
+        return Response({'id': target.user_id, 'email': target.user.email, 'role': target.role})
     if request.method == 'GET':
-        return Response([{'id': x.user_id, 'email': x.user.email, 'role': x.role} for x in Membership.objects.filter(restaurant=m.restaurant).select_related('user')])
+        return Response([{'id': x.user_id, 'email': x.user.email, 'role': x.role, 'is_initial_owner': x.user_id == m.restaurant.initial_owner_id, 'is_last_owner': x.role == 'OWNER' and not active_owners(m.restaurant).exclude(pk=x.pk).exists()} for x in Membership.objects.filter(restaurant=m.restaurant).select_related('user')])
     serializer = UserInput(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
@@ -163,7 +152,8 @@ def restaurants(request):
     if request.method == 'GET':
         return Response([{
             'id': restaurant.pk, 'name': restaurant.name, 'is_active': restaurant.is_active,
-            'owners': [{'id': m.user_id, 'email': m.user.email} for m in restaurant.membership_set.all() if m.role == 'OWNER' and m.is_active],
+            'owners': [{'id': m.user_id, 'email': m.user.email} for m in restaurant.membership_set.all() if m.role == 'OWNER' and m.is_active and m.user.is_active and not m.user.is_superuser],
+            'initial_owner': next(({'email': m.user.email, 'role': m.role} for m in restaurant.membership_set.all() if m.user_id == restaurant.initial_owner_id), None),
         } for restaurant in Restaurant.objects.order_by('name').prefetch_related('membership_set__user')])
     if request.method == 'PATCH':
         class Update(serializers.Serializer):
@@ -197,7 +187,27 @@ def restaurants(request):
         owner = User.objects.select_for_update().filter(pk=data['owner'], is_active=True, is_superuser=False).first()
         if not owner or Membership.objects.filter(user=owner).exists():
             return Response({'detail': 'El Dueño debe ser un usuario operativo sin restaurante.'}, status=400)
-        restaurant = Restaurant.objects.create(name=data['name'])
+        restaurant = Restaurant.objects.create(name=data['name'], initial_owner=owner)
         Membership.objects.create(user=owner, restaurant=restaurant, role='OWNER')
         AuditLog.objects.create(restaurant=restaurant, actor=request.user, action='restaurant.created', entity_id=str(restaurant.pk), after={'name': restaurant.name, 'owner': owner.pk})
     return Response({'id': restaurant.pk, 'name': restaurant.name}, status=201)
+
+
+@api_view(['PATCH'])
+def initial_owner_role(request):
+    # RF-007: narrowly scoped global exception, no employee directory access.
+    if not request.user.is_superuser:
+        raise PermissionDenied('Esta operación requiere un administrador global.')
+    class InitialOwnerUpdate(serializers.Serializer):
+        restaurant = serializers.UUIDField()
+        role = serializers.ChoiceField(choices=Membership.Role.choices)
+
+        def validate(self, data):
+            if set(self.initial_data) - {'restaurant', 'role'}:
+                raise serializers.ValidationError('Solo puedes cambiar el rol del primer Dueño del restaurante seleccionado.')
+            return data
+    serializer = InitialOwnerUpdate(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    target = change_role(actor=request.user, restaurant_id=serializer.validated_data['restaurant'],
+                         user_id=None, role=serializer.validated_data['role'], platform=True)
+    return Response({'role': target.role})

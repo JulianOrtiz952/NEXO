@@ -7,6 +7,7 @@ class Restaurant(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=160)
     is_active = models.BooleanField(default=True)
+    initial_owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, editable=False, related_name='founded_restaurants')
 
 
 class Membership(models.Model):

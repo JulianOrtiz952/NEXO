@@ -1,6 +1,7 @@
 # Modelo de datos propuesto (borrador, revisar antes de migrar)
 
 ## Alcance y estado
+- **Ampliación aprobada DN-23 / RF-007 (2026-10-27):** `Restaurant.initial_owner` referencia permanente y protegida a `auth.User`; el servidor valida pertenencia al restaurante y restringe quitar OWNER al primer Dueño al administrador global. Siempre debe quedar otro Dueño activo cuando se retira ese rol. Migración 0003 preparada y probada, pendiente de revisión/aplicación local. No cambia los roles locales ni concede acceso operativo al administrador global.
 - **Implementación inicial DN-19/21/17/18 (2026-10-22):** Django/DRF + SQLite y React/Vite. `Restaurant` usa UUID; se conserva `auth.User` de Django y su PK existente. `Membership` usa OneToOne con usuario y rol local; `AccessToken` guarda solo SHA-256 y vencimiento fijo de una hora. `AuditLog` registra altas y cambios administrativos sin API de edición/borrado. Las migraciones se probaron y revirtieron en memoria; su aplicación local espera revisión del usuario.
 - Política aprobada: el administrador global es una identidad separada (`is_superuser`, sin necesidad de `is_staff`); crea/activa/desactiva restaurantes y asigna Dueños. Las API operativas lo rechazan. Los cinco roles locales no conceden este privilegio y el alta de usuarios ignora privilegios globales o tenants del payload.
 - **Borrador conceptual, no esquema aprobado ni migración ejecutada.** Confirmar stack, modelo de autenticación y relaciones antes de generar migraciones.

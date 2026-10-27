@@ -21,6 +21,9 @@ class IdentityTests(APITestCase):
         user = User.objects.create_user(username=email, email=email, password='Nexo-test-987!good', is_superuser=superuser)
         if restaurant:
             Membership.objects.create(user=user, restaurant=restaurant, role=role)
+            if role == 'OWNER' and restaurant.initial_owner_id is None:
+                restaurant.initial_owner = user
+                restaurant.save(update_fields=['initial_owner'])
         return user
 
     def login(self, user):
@@ -91,22 +94,24 @@ class IdentityTests(APITestCase):
         self.assertFalse(AuditLog.objects.exists())
 
     def test_rf007_self_change_updates_existing_session_and_same_role_is_noop(self):
-        self.login(self.owner)
-        payload = {'id': self.owner.pk, 'role': 'OWNER'}
+        secondary = self.make_user('secondary@a.co', self.a, 'OWNER')
+        self.login(secondary)
+        payload = {'id': secondary.pk, 'role': 'OWNER'}
         self.assertEqual(self.client.patch('/api/users/', payload, format='json').status_code, 200)
         self.assertFalse(AuditLog.objects.exists())
         payload['role'] = 'KITCHEN'
         self.assertEqual(self.client.patch('/api/users/', payload, format='json').status_code, 200)
         self.assertEqual(self.client.get('/api/auth/me/').data['modules'], ['kitchen'])
-        self.assertEqual(self.client.patch('/api/users/', {'id': self.owner.pk, 'role': 'OWNER'}, format='json').status_code, 403)
+        self.assertEqual(self.client.patch('/api/users/', {'id': secondary.pk, 'role': 'OWNER'}, format='json').status_code, 403)
 
     def test_rf007_audit_failure_rolls_back_role_change(self):
         from unittest.mock import patch
+        secondary = self.make_user('rollback@a.co', self.a, 'OWNER')
         self.login(self.owner)
-        with patch('api.identity.AuditLog.objects.create', side_effect=RuntimeError('audit unavailable')):
+        with patch('api.ownership.AuditLog.objects.create', side_effect=RuntimeError('audit unavailable')):
             with self.assertRaises(RuntimeError):
-                self.client.patch('/api/users/', {'id': self.owner.pk, 'role': 'ADMIN'}, format='json')
-        self.assertEqual(Membership.objects.get(user=self.owner).role, 'OWNER')
+                self.client.patch('/api/users/', {'id': secondary.pk, 'role': 'ADMIN'}, format='json')
+        self.assertEqual(Membership.objects.get(user=secondary).role, 'OWNER')
 
     def test_bad_password_and_inactive_identity_create_no_token(self):
         self.assertEqual(self.client.post('/api/auth/login/', {'email': self.owner.email, 'password': 'wrong'}).status_code, 401)

@@ -96,6 +96,16 @@ export default function Identity() {
     } catch (error) { await handleError(error) }
     finally { setBusy(false) }
   }
+  async function updateInitialOwnerRole(event, restaurant) {
+    event.preventDefault()
+    const role = new FormData(event.currentTarget).get('role')
+    setBusy(true); setMessage('')
+    try {
+      await api('platform/initial-owner-role/', { method: 'PATCH', body: JSON.stringify({ restaurant, role }) })
+      if (await refresh()) setMessage('Rol del primer Dueño actualizado. El restaurante conserva un Dueño activo.')
+    } catch (error) { await handleError(error) }
+    finally { setBusy(false) }
+  }
   if (!user) return <main className="identity-gate"><a className="welcome-logo" href="/">NEX<span>O</span></a><h1>Tu espacio en NEXO</h1><p role="status">{message || 'Validando tu acceso…'}</p><a className="identity-primary" href="/login">Iniciar sesión →</a></main>
   const platform = user.role === 'PLATFORM_ADMIN'
   const canManage = user.modules.includes('users')
@@ -134,10 +144,15 @@ export default function Identity() {
           {!rows.length ? <p className="identity-empty">{platform ? 'Tu primer restaurante empieza arriba. Crea una cuenta y vincula su espacio.' : 'Todavía no hay usuarios para mostrar.'}</p> : <ul className="identity-list">{rows.map(row => <li key={row.id}>{platform ? <>
             <div className="identity-row-heading"><div><h3>{row.name}</h3><p>{row.owners.map(owner => owner.email).join(', ') || 'Sin Dueño activo'}</p></div><span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span></div>
             <form className="identity-update" onSubmit={event => updateRestaurant(event, row.id)}><fieldset disabled={busy}><label>Estado<select name="is_active" defaultValue={String(row.is_active)} key={String(row.is_active)}><option value="true">Activo</option><option value="false">Inactivo</option></select></label><label>Vincular otro Dueño<select name="owner" defaultValue=""><option value="">Conservar asignación actual</option>{owners.map(owner => <option key={owner.id} value={owner.id}>{owner.email}</option>)}</select></label><button className="identity-secondary" type="submit">Guardar cambios</button></fieldset></form>
+            {row.initial_owner && <form className="identity-update identity-role-update" aria-label={`Rol del primer Dueño de ${row.name}`} onSubmit={event => updateInitialOwnerRole(event, row.id)}>
+              <p className="identity-hint">Primer Dueño: {row.initial_owner.email}. Solo el administrador global puede cambiar su rol. Debe quedar otro Dueño activo.</p>
+              <fieldset disabled={busy || (row.initial_owner.role === 'OWNER' && row.owners.length < 2)}><label>Rol del primer Dueño<select name="role" defaultValue={row.initial_owner.role} key={row.initial_owner.role}>{Object.entries(roles).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button className="identity-secondary" type="submit">Guardar rol del primer Dueño</button></fieldset>
+            </form>}
           </> : <>
             <div className="identity-row-heading"><div className="identity-person"><span className="identity-avatar">{row.email.slice(0, 1).toUpperCase()}</span><div><h3>{row.email}</h3><p>Miembro de {user.restaurant.name}</p></div></div><span className="identity-badge">{roles[row.role]}</span></div>
             <form className="identity-update identity-role-update" aria-label={`Cambiar rol de ${row.email}`} onSubmit={event => updateRole(event, row.id)}>
-              <fieldset disabled={busy}><label>Rol de {row.email}<select name="role" defaultValue={row.role} key={row.role}>{Object.entries(roles).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button className="identity-secondary" type="submit">Guardar rol</button></fieldset>
+              {(row.is_initial_owner || row.is_last_owner) && <p className="identity-hint">{row.is_initial_owner ? 'Primer Dueño protegido: solo el administrador global puede cambiar su rol de Dueño.' : 'Debe conservarse al menos un Dueño activo. Asigna otro antes de cambiar este rol.'}</p>}
+              <fieldset disabled={busy || (row.role === 'OWNER' && (row.is_initial_owner || row.is_last_owner))}><label>Rol de {row.email}<select name="role" defaultValue={row.role} key={row.role}>{Object.entries(roles).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button className="identity-secondary" type="submit">Guardar rol</button></fieldset>
             </form>
           </>}</li>)}</ul>}
         </section>}
