@@ -38,3 +38,15 @@ class AuditLog(models.Model):
     before = models.JSONField(default=dict)
     after = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Zone(models.Model):
+    # RF-012: canonical name enforces uniqueness inside each restaurant.
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.PROTECT)
+    name = models.CharField(max_length=100)
+    name_key = models.CharField(max_length=100, editable=False)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['restaurant', 'name_key'], name='zone_restaurant_name_unique')]

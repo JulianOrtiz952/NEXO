@@ -2,6 +2,7 @@ from django.urls import path
 from .views import health, menu
 from . import identity
 from .history import history
+from .zones import zones
 
 urlpatterns = [path('menu/', menu, name='menu'), path('health/', health, name='health')]
 urlpatterns += [
@@ -12,6 +13,8 @@ urlpatterns += [
     path('users/<int:user_id>/', identity.user_details),
     path('users/<int:user_id>/status/', identity.user_status),
     path('history/', history),
+    path('zones/', zones),
+    path('zones/<uuid:zone_id>/', zones),
     path('platform/initial-owner-status/', identity.user_status),
     path('platform/restaurants/', identity.restaurants),
     path('platform/owners/', identity.prospective_owners),

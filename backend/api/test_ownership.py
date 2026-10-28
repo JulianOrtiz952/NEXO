@@ -135,6 +135,7 @@ class OwnershipConcurrencyTests(TransactionTestCase):
 class InitialOwnerMigrationTests(TransactionTestCase):
     def test_backfill_uses_audit_and_reverse_preserves_accounts_and_roles(self):
         executor = MigrationExecutor(connection)
+        latest = executor.loader.graph.leaf_nodes()
         executor.migrate([('api', '0002_auditlog')])
         old = executor.loader.project_state([('api', '0002_auditlog')]).apps
         user = User.objects.create_user(username='historical')
@@ -153,4 +154,4 @@ class InitialOwnerMigrationTests(TransactionTestCase):
             self.assertEqual(old.get_model('api', 'Membership').objects.get(user_id=user.pk).role, 'OWNER')
             self.assertTrue(User.objects.filter(pk=user.pk).exists())
         finally:
-            MigrationExecutor(connection).migrate([('api', '0003_restaurant_initial_owner')])
+            MigrationExecutor(connection).migrate(latest)

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from './identityApi.js'
 import './Identity.css'
 import History from './History.jsx'
+import Zones from './Zones.jsx'
 const labels = { users: 'Usuarios', tables: 'Mesas', kitchen: 'Cocina', menu: 'Carta', cashier: 'Caja', restaurants: 'Restaurantes' }
 const roles = { OWNER: 'Dueño', ADMIN: 'Administrador', CASHIER: 'Caja', WAITER: 'Mesero', KITCHEN: 'Cocina' }
 
@@ -148,15 +149,15 @@ export default function Identity() {
   if (!user) return <main className="identity-gate"><a className="welcome-logo" href="/">NEX<span>O</span></a><h1>Tu espacio en NEXO</h1><p role="status">{message || 'Validando tu acceso…'}</p><a className="identity-primary" href="/login">Iniciar sesión →</a></main>
   const platform = user.role === 'PLATFORM_ADMIN'
   const canManage = user.modules.includes('users')
-  const availableSections = platform ? ['accounts', 'restaurants', 'history'] : canManage ? ['accounts', 'history', 'access'] : ['access']
+  const availableSections = platform ? ['accounts', 'restaurants', 'history'] : canManage ? ['accounts', 'zones', 'history', 'access'] : ['access']
   const activeSection = availableSections.includes(section) ? section : availableSections[0]
-  const sectionLabels = { accounts: platform ? 'Dueños' : 'Usuarios y roles', restaurants: 'Restaurantes', history: 'Historial', access: 'Mi acceso' }
+  const sectionLabels = { accounts: platform ? 'Dueños' : 'Usuarios y roles', restaurants: 'Restaurantes', history: 'Historial', zones: 'Zonas', access: 'Mi acceso' }
   return <div className="identity-shell">
     <aside className="identity-sidebar">
       <a className="identity-brand" href="/">NEX<span>O</span></a><p className="identity-caption">CADA CONEXIÓN CUENTA</p>
       <p className="identity-section-label">TU ESPACIO</p>
       <nav aria-label="Gestión autorizada">
-        {availableSections.map(item => <a key={item} href={`#${item}`} aria-current={activeSection === item ? 'page' : undefined}><span aria-hidden="true">{({ accounts: '◎', restaurants: '▦', history: '◷', access: '◇' })[item]}</span><span>{sectionLabels[item]}</span></a>)}
+        {availableSections.map(item => <a key={item} href={`#${item}`} aria-current={activeSection === item ? 'page' : undefined}><span aria-hidden="true">{({ accounts: '◎', restaurants: '▦', history: '◷', zones: '▦', access: '◇' })[item]}</span><span>{sectionLabels[item]}</span></a>)}
       </nav>
       <div className="identity-side-note"><span>Una operación conectada.</span><p>{platform ? 'Cada restaurante, con su propio equipo y su propio espacio.' : 'Las personas correctas, en cada lugar de tu restaurante.'}</p></div>
       <div className="identity-profile"><span className="identity-avatar">{user.email.slice(0, 1).toUpperCase()}</span><div><strong>{roles[user.role] || 'Administrador global'}</strong><small>{user.email}</small></div></div>
@@ -165,7 +166,7 @@ export default function Identity() {
     <main className="identity-main">
       <header className="identity-topbar"><span>NEXO / {platform ? 'Plataforma' : user.restaurant.name} / {sectionLabels[activeSection]}</span><span className="identity-session">Sesión de 1 hora</span></header>
       <div className="identity-content">
-        <header className="identity-heading"><p className="identity-eyebrow">{platform ? 'ADMINISTRACIÓN DE PLATAFORMA' : 'TU RESTAURANTE, CONECTADO'}</p><h1>{activeSection === 'history' ? 'Cada cambio, con su historia.' : activeSection === 'restaurants' ? 'Conecta cada restaurante.' : activeSection === 'access' ? 'Tu espacio en NEXO.' : platform ? 'Las personas detrás de cada espacio.' : 'Personas que hacen equipo.'}</h1><p>{activeSection === 'history' ? 'Consulta quién realizó cada cambio, cuándo ocurrió y cuáles fueron sus valores anteriores y nuevos.' : activeSection === 'access' ? 'Estos son los módulos habilitados para tu rol y tu restaurante.' : platform ? activeSection === 'restaurants' ? 'Crea restaurantes, vincula Dueños y administra su acceso.' : 'Crea las cuentas de futuros Dueños para vincularlas después a un restaurante.' : `Administra los accesos de ${user.restaurant.name}. Cada persona, con el rol que necesita.`}</p></header>
+        <header className="identity-heading"><p className="identity-eyebrow">{platform ? 'ADMINISTRACIÓN DE PLATAFORMA' : 'TU RESTAURANTE, CONECTADO'}</p><h1>{activeSection === 'zones' ? 'Cada espacio, en su lugar.' : activeSection === 'history' ? 'Cada cambio, con su historia.' : activeSection === 'restaurants' ? 'Conecta cada restaurante.' : activeSection === 'access' ? 'Tu espacio en NEXO.' : platform ? 'Las personas detrás de cada espacio.' : 'Personas que hacen equipo.'}</h1><p>{activeSection === 'zones' ? 'Crea y organiza las zonas de tu restaurante.' : activeSection === 'history' ? 'Consulta quién realizó cada cambio, cuándo ocurrió y cuáles fueron sus valores anteriores y nuevos.' : activeSection === 'access' ? 'Estos son los módulos habilitados para tu rol y tu restaurante.' : platform ? activeSection === 'restaurants' ? 'Crea restaurantes, vincula Dueños y administra su acceso.' : 'Crea las cuentas de futuros Dueños para vincularlas después a un restaurante.' : `Administra los accesos de ${user.restaurant.name}. Cada persona, con el rol que necesita.`}</p></header>
         {activeSection !== 'history' && <div className="identity-summary"><div><span>{platform ? 'RESTAURANTES' : 'RESTAURANTE'}</span><strong>{platform ? rows.length : user.restaurant.name}</strong></div><div><span>{platform ? 'DUEÑOS POR VINCULAR' : 'TU ROL'}</span><strong>{platform ? owners.length : roles[user.role]}</strong></div><div><span>ACCESO</span><strong>{platform ? 'Administración global' : 'Solo tu restaurante'}</strong></div></div>}
         {message && <p className="identity-message" role="status">{message}</p>}
         {(platform || canManage) && ['accounts', 'restaurants'].includes(activeSection) && <div className="identity-grid">
@@ -204,6 +205,7 @@ export default function Identity() {
             </form>
           </>}</li>)}</ul>}
         </section>}
+        {canManage && activeSection === 'zones' && <Zones key={`${user.id}-${user.role}`} refreshKey={historyVersion} onAccessError={handleError} />}
         {(platform || canManage) && activeSection === 'history' && <History key={`${user.id}-${user.role}`} refreshKey={historyVersion} />}
         {activeSection === 'access' && <section className="identity-access" id="access"><h2>Tus módulos autorizados</h2><div>{user.modules.map(module => <span key={module}>{labels[module]}</span>)}</div>{!platform && <p>Los módulos operativos se incorporarán en sus sprints correspondientes.</p>}</section>}
         <footer className="identity-footer">NEXO · Cada conexión cuenta.</footer>

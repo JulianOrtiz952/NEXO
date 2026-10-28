@@ -70,6 +70,9 @@
 ### Sprint 02 — Configuración del restaurante y carta [MVP]
 **RF:** RF-012–018; RF-020–021; RF-023–028; RF-031; RF-034–035.
 **Resultado esperado:** Zonas, mesas, carta, precio, exclusiones, observaciones; todo acotado al tenant.
+- [x] DN-28 / RF-012 (2026-10-28), implementación y validación en QA: gestión de zonas por OWNER/ADMIN con nombre único por restaurante, creación activa, edición y activación/desactivación sin borrado; permisos en servidor, aislamiento, auditoría atómica e interfaz NEXO responsiva con confirmación. Plan y CA aprobados en el chat. Historial ampliado por solicitud del usuario con clasificación y filtro por tipo de acción en servidor, antes de paginar (RNF-007).
+- [x] Verificación DN-28: 64 pruebas Django, check y consistencia de migraciones, lint/build; sin typecheck disponible en frontend JavaScript. Navegador con base temporal: ciclo completo, duplicados, recarga, historial filtrado, aislamiento entre dos restaurantes, Mesero sin gestión y revisión móvil. Migración 0004 aplicada/revertida/reaplicada en QA conservando identidades; detalles en `docs/ZONES.md`.
+- [ ] DN-28: revisión del usuario y autorización para aplicar migración 0004 a la base local con respaldo. No aplicada a datos reales; no se modifica cierre de Jira ni se inicia DN-29.
 - [ ] Historias/tareas y CA acordados en Jira.
 - [ ] Backend + frontend + persistencia integrada cuando corresponda.
 - [ ] Pruebas funcionales, autorizaciones, aislamiento entre restaurantes y regresión.
