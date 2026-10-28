@@ -25,6 +25,8 @@
 **RF:** RF-001–009; RF-223–224; RF-233–235.
 **Resultado esperado:** Login, roles locales, membresía por restaurante, autorización y auditoría base.
 
+**Transición al Sprint 02 (2026-10-28):** el usuario confirma el traslado de DN-20 / RF-004 y DN-250 / RF-234 pendientes al backlog y autoriza continuar con Sprint 02. Se conserva su alcance parcial y sus verificaciones futuras; no se declaran cumplidos esos RF. Las validaciones de auditoría quedaron registradas con 58 pruebas correctas y comprobación en navegador. La IA no modificó estados de Jira. Próximo paso: presentar plan y CA de DN-28 / RF-012 para aprobación antes de cambiar el esquema.
+
 **Avance DN-19 / DN-21 / DN-17 / DN-18 (2026-10-22):**
 - [x] DN-240 / RF-224 (2026-10-28): validada una edición real por API y navegador; auditoría persistida con actor, acción, fecha/hora con zona, ID de entidad, restaurante y anterior/nuevo. Historial identifica responsable y afectado, sin secretos. Prueba de aceptación dedicada en `backend/api/test_audit_acceptance.py`.
 - [x] DN-249 / RF-233 (2026-10-28): ciclo completo alta → editar correo → cambiar Mesero a Cocina → desactivar → reactivar desde endpoints e interfaz NEXO; cinco eventos con actor, entidad, tenant y valores verificados. Desactivación y activación usan confirmación visual; el historial persiste al recargar.
