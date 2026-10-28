@@ -29,7 +29,7 @@ class TableTests(APITestCase):
         return f'/api/zones/{(zone or self.zone).pk}/tables/'
 
     def create(self, zone=None):
-        response = self.client.post(self.path(zone), {}, format='json')
+        response = self.client.post(self.path(zone), {'name': 'Mesa'}, format='json')
         self.assertEqual(response.status_code, 201, response.data)
         return response.data['id']
 
@@ -44,7 +44,7 @@ class TableTests(APITestCase):
             self.assertEqual(event.actor_id, actor.pk)
             self.assertEqual(event.restaurant_id, self.restaurant.pk)
             self.assertEqual(event.before, {})
-            self.assertEqual(event.after, {'zone_id': str(self.zone.pk), 'zone_name': 'Salón'})
+            self.assertEqual(event.after, {'name': 'Mesa', 'zone_id': str(self.zone.pk), 'zone_name': 'Salón'})
             self.assertIn(table_id, [row['id'] for row in self.client.get(self.path()).data])
             self.assertEqual(self.client.get(self.path(self.other_zone)).data, [])
             detail = self.client.get(f'/api/tables/{table_id}/').data
@@ -64,7 +64,7 @@ class TableTests(APITestCase):
             response = self.client.get(self.path(own_zone), {'restaurant_id': str(other_zone.restaurant_id), 'zone': str(other_zone.pk)})
             self.assertEqual([row['id'] for row in response.data], [own_id])
             self.assertEqual(self.client.get(self.path(other_zone)).status_code, 404)
-            self.assertEqual(self.client.post(self.path(other_zone), {}, format='json').status_code, 404)
+            self.assertEqual(self.client.post(self.path(other_zone), {'name': 'Mesa'}, format='json').status_code, 404)
             self.assertEqual(self.client.get(f'/api/tables/{other_id}/').status_code, 404)
         self.assertEqual(Table.objects.count(), 2)
         self.assertEqual(AuditLog.objects.count(), 2)
@@ -76,11 +76,11 @@ class TableTests(APITestCase):
         for actor in actors:
             self.client.force_authenticate(actor)
             self.assertEqual(self.client.get(self.path()).status_code, 403)
-            self.assertEqual(self.client.post(self.path(), {}, format='json').status_code, 403)
+            self.assertEqual(self.client.post(self.path(), {'name': 'Mesa'}, format='json').status_code, 403)
             self.assertEqual(self.client.get(f'/api/tables/{table_id}/').status_code, 403)
         self.client.force_authenticate(None)
         self.assertEqual(self.client.get(self.path()).status_code, 401)
-        self.assertEqual(self.client.post(self.path(), {}, format='json').status_code, 401)
+        self.assertEqual(self.client.post(self.path(), {'name': 'Mesa'}, format='json').status_code, 401)
 
     def test_inactive_membership_user_and_restaurant_cannot_manage(self):
         for model in [self.admin, self.admin.membership, self.restaurant]:
@@ -88,7 +88,7 @@ class TableTests(APITestCase):
             model.save()
             self.client.force_authenticate(self.admin)
             self.assertEqual(self.client.get(self.path()).status_code, 403)
-            self.assertEqual(self.client.post(self.path(), {}, format='json').status_code, 403)
+            self.assertEqual(self.client.post(self.path(), {'name': 'Mesa'}, format='json').status_code, 403)
             model.is_active = True
             model.save()
         self.assertEqual(Table.objects.count(), 0)
@@ -96,7 +96,7 @@ class TableTests(APITestCase):
     def test_zone_inactivation_preserves_tables_and_blocks_new_creation(self):
         table_id = self.create()
         self.assertEqual(self.client.patch(f'/api/zones/{self.zone.pk}/', {'is_active': False}, format='json').status_code, 200)
-        response = self.client.post(self.path(), {}, format='json')
+        response = self.client.post(self.path(), {'name': 'Mesa'}, format='json')
         self.assertEqual(response.status_code, 400)
         self.assertIn('inactiva', str(response.data))
         self.assertEqual([row['id'] for row in self.client.get(self.path()).data], [table_id])
@@ -106,12 +106,12 @@ class TableTests(APITestCase):
         self.assertEqual(Table.objects.count(), 2)
 
     def test_reject_unknown_zones_extra_fields_and_unsupported_mutations(self):
-        for data in [{'zone': str(self.foreign_zone.pk)}, {'restaurant': str(self.restaurant.pk)}, {'name': 'Mesa'}, {'id': str(uuid4())}, {'is_active': False}]:
+        for data in [{'zone': str(self.foreign_zone.pk)}, {'restaurant': str(self.restaurant.pk)}, {'name': 'Mesa', 'role': 'OWNER'}, {'id': str(uuid4())}, {'is_active': False}]:
             self.assertEqual(self.client.post(self.path(), data, format='json').status_code, 400)
-        self.assertEqual(self.client.post(f'/api/zones/{uuid4()}/tables/', {}, format='json').status_code, 404)
+        self.assertEqual(self.client.post(f'/api/zones/{uuid4()}/tables/', {'name': 'Mesa'}, format='json').status_code, 404)
         table_id = self.create()
-        for method in ['post', 'put', 'patch', 'delete']:
-            self.assertEqual(getattr(self.client, method)(f'/api/tables/{table_id}/', {}, format='json').status_code, 405)
+        for method in ['post', 'put', 'delete']:
+            self.assertEqual(getattr(self.client, method)(f'/api/tables/{table_id}/', {'name': 'Mesa'}, format='json').status_code, 405)
         self.assertEqual(Table.objects.count(), 1)
         with self.assertRaises(ProtectedError):
             self.zone.delete()
@@ -119,7 +119,7 @@ class TableTests(APITestCase):
     def test_audit_failure_rolls_back_table(self):
         with patch('api.tables.AuditLog.objects.create', side_effect=RuntimeError('Audit unavailable')):
             with self.assertRaises(RuntimeError):
-                self.client.post(self.path(), {}, format='json')
+                self.client.post(self.path(), {'name': 'Mesa'}, format='json')
         self.assertEqual(Table.objects.count(), 0)
         self.assertEqual(AuditLog.objects.count(), 0)
 
@@ -134,6 +134,6 @@ class TableTests(APITestCase):
         self.assertEqual(history['count'], 1)
         row = history['results'][0]
         self.assertEqual((row['category'], row['action_type']), ('Mesas', 'Creación'))
-        self.assertEqual(row['target'], 'Mesa en Salón')
-        self.assertEqual(row['after'], {'zone_name': 'Salón'})
+        self.assertEqual(row['target'], 'Mesa')
+        self.assertEqual(row['after'], {'name': 'Mesa', 'zone_name': 'Salón'})
         self.assertEqual(AuditLog.objects.get(entity_id=table_id).after['zone_id'], str(self.zone.pk))

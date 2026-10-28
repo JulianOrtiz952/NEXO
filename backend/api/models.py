@@ -56,4 +56,8 @@ class Table(models.Model):
     # RF-013: restaurant ownership follows the protected zone relation.
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     zone = models.ForeignKey(Zone, on_delete=models.PROTECT)
+    name = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=~models.Q(name=''), name='table_name_not_empty')]

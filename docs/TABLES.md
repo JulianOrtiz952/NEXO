@@ -1,6 +1,6 @@
 # Mesas por zona — DN-29 / RF-013
 
-Plan y CA de DN-29 aprobados por el usuario en el chat el 2026-10-28: alta y consulta de mesas asociadas a zonas. DN-30 / RF-014 se incorpora con el alcance aprobado más abajo. DN-31 (identificación visible configurable), DN-32 (identificadores duplicados) y estados operativos siguen pendientes; no se dan por implementados.
+Plan y CA de DN-29 aprobados por el usuario en el chat el 2026-10-28: alta y consulta de mesas asociadas a zonas. DN-30 / RF-014 y DN-31 / RF-015 se incorporan con los alcances aprobados más abajo. DN-32 (identificadores duplicados) y estados operativos siguen pendientes; no se dan por implementados.
 
 ## Criterios aprobados
 
@@ -13,15 +13,15 @@ Plan y CA de DN-29 aprobados por el usuario en el chat el 2026-10-28: alta y con
 
 ## Interfaz NEXO
 
-`/app#tables`: selector de zona, alta de una mesa por acción, listado de registros con zona y fecha de creación, carga, errores y estados vacíos. Muestra «Mesa registrada» mientras se implementa DN-31; no exige escribir IDs. Zonas inactivas se identifican con texto y no permiten altas. Ante ausencia de zonas ofrece enlace a Zonas.
+`/app#tables`: selector de zona, alta de una mesa por acción, listado de registros con nombre, zona y fecha de creación, carga, errores y estados vacíos. DN-31 sustituye «Mesa registrada» por el nombre configurable y añade edición por tarjeta; no exige escribir IDs. Zonas inactivas se identifican con texto y no permiten altas. Ante ausencia de zonas ofrece enlace a Zonas.
 
 Se preservan navegación, diseño crema/dorado, controles táctiles y adaptación móvil (RNF-029/031/033). Cambiar la zona invalida los resultados previos; respuestas antiguas no restauran mesas de otra selección. El botón se bloquea durante el envío y hay una guarda contra doble envío simultáneo desde el componente.
 
 ## API e Historial
 
 - GET `/api/zones/<uuid>/tables/`: lista únicamente mesas de esa zona autorizada.
-- POST en la misma ruta: cuerpo `{}`; crea una mesa en esa zona. No acepta nombres, IDs, restaurante ni otros campos.
-- GET `/api/tables/<uuid>/`: consulta individual restringida por `zone__restaurant`.
+- POST en la misma ruta: DN-31 requiere `name`; crea una mesa en esa zona. No acepta IDs, restaurante ni otros campos.
+- GET/PATCH `/api/tables/<uuid>/`: consulta individual y edición de nombre, restringidas por `zone__restaurant`.
 - 400: zona inactiva o campos no admitidos; 401: sin sesión; 403: sin permiso; 404: zona/mesa ajena o inexistente; 409: contención temporal SQLite.
 - Evento `table.created`, clasificado en el Historial como **Mesas · Creación**. Persiste actor, restaurante, ID de entidad y snapshot de ID/nombre de zona; muestra el nombre de zona al crear, aunque posteriormente cambie. El filtro en servidor y la paginación existentes mantienen aislamiento. La vista global no incorpora eventos de mesas.
 
@@ -59,3 +59,34 @@ Plan y alcance aprobados por el usuario el 2026-10-28: mantener altas individual
 - No requiere migraciones, dependencias ni cambios en datos existentes. Si hubiera zonas preexistentes por encima del límite, se conservan y se impiden nuevas altas; no hay recorte automático de registros.
 
 Verificación de DN-30: 75 pruebas Django correctas (tres nuevas para límites, independencia/aislamiento y concurrencia real con dos conexiones), Django check y consistencia de migraciones, lint/build correctos; frontend JavaScript sin typecheck disponible. Navegador QA aislado con 99 registros: creación número 100, bloqueo/explicación, rechazo y actualización desde una segunda sesión desactualizada, zona diferente con `0 / 100` y alta habilitada. Vista móvil de 390 px sin desbordamiento horizontal. Datos QA ficticios; no se crearon mesas reales ni se modificó el estado de Jira. Validación final del usuario pendiente.
+
+## Nombres editables — DN-31 / RF-015
+
+Plan aprobado y autorización explícita del usuario el 2026-10-28 para añadir nombre editable y preparar una migración que asigne «Mesa 1», «Mesa 2»… por zona, conservando IDs e historial. La autorización de preparación no incluye aplicar 0006 a la base local.
+
+- `Table.name`: texto obligatorio, hasta 100 caracteres, admite números como texto. El servidor retira espacios exteriores y rechaza nombres vacíos, nulos, demasiado largos o campos adicionales. Restricción de BD contra cadena vacía.
+- POST de alta y PATCH de edición reciben exclusivamente `name`. Solo OWNER/ADMIN locales; no se trasladan mesas ni se modifican UUID, restaurante, zona o fecha de alta. Las mesas en zonas inactivas conservan edición de nombre; la restricción de nuevas altas permanece.
+- El cambio de nombre y la auditoría son atómicos bajo bloqueo de restaurante y autorización revisada en servidor. Un fallo de auditoría revierte el nombre. Guardar el mismo valor no agrega eventos.
+- Evento `table.name_changed`: snapshot anterior/nuevo con nombre y zona, actor, entidad y restaurante. Se clasifica como «Mesas · Cambio de nombre». Los eventos de alta nuevos incluyen nombre; los anteriores permanecen intactos y su presentación sigue usando la zona histórica si carecen de nombre.
+- Formularios NEXO de alta y edición muestran el nombre en cada tarjeta y conservan los borradores ante errores/actualización periódica. Los mensajes de validación son españoles y no desaparecen por la recarga de zonas. Nombres como `OWNER` o `toString` se muestran como texto, sin traducirlos como roles en el Historial.
+- La pantalla actual es de configuración. La vista operativa de Mesero/Caja corresponde al flujo de visualización DN-104 / RF-088 del Sprint 04; no se amplían permisos operativos ni se afirma validado ese flujo futuro. Los nombres quedarán disponibles en las respuestas de los endpoints autorizados para las vistas que se implementen.
+- La unicidad por zona corresponde a DN-32 / RF-016, todavía pendiente. DN-31 no incorpora una restricción de duplicados.
+
+### Migración 0006 para revisión
+
+`backend/api/migrations/0006_table_name.py`: añade `name` temporalmente nullable, recorre mesas ordenadas por zona/fecha/UUID asignando `Mesa 1…N` dentro de cada zona y convierte el campo a obligatorio con comprobación de cadena no vacía. No modifica UUID, zona, fecha de alta, usuarios, membresías ni auditorías. No crea eventos retroactivos ni mesas ficticias.
+
+Aplicación prevista **solo tras revisión y autorización del usuario**, con respaldo previo:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe manage.py migrate api 0006
+```
+
+Reversión técnica: `manage.py migrate api 0005`. Retira la columna de nombres y su comprobación; conserva las mesas con sus IDs, fechas y zonas y todos los eventos de auditoría. Los nombres actuales se pierden al retirar la columna; reaplicar vuelve a asignar los nombres iniciales, por lo que se requiere respaldo y revisión antes de revertir.
+
+Probada aplicación/reversión/reaplicación en BD de pruebas con varias zonas y dos restaurantes, verificando IDs, fechas, zonas y eventos idénticos. **No aplicada a `backend/db.sqlite3`.** Sin dependencias nuevas.
+
+Verificación DN-31: 82 pruebas Django correctas (siete nuevas de nombres/migración), regresión específica de 18 pruebas tras ajustar mensajes, check, consistencia de migraciones y lint/build correctos. Frontend JavaScript sin script typecheck. Pruebas existentes de alta/capacidad adaptadas al nombre obligatorio. Navegador QA: nombres iniciales, edición «Mesa 1» → «Ventana», alta «12», error de blancos persistente, recarga, historial anterior/nuevo filtrado, restaurante B con sus propios nombres, Mesero sin gestión y edición móvil «Ventana principal» a 390 px sin desbordamiento.
+
+Pendientes: revisión/aplicación autorizada de 0006, validación final del usuario y posterior comprobación del nombre en la futura vista operativa. Jira no se cierra automáticamente.

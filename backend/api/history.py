@@ -20,6 +20,7 @@ ACTION_TYPES = {
     'zone.updated': ('Zonas', 'Edición'),
     'zone.status_changed': ('Zonas', 'Cambio de estado'),
     'table.created': ('Mesas', 'Creación'),
+    'table.name_changed': ('Mesas', 'Cambio de nombre'),
 }
 GLOBAL_ACTIONS = {key for key in ACTION_TYPES if key.startswith(('user.', 'restaurant.', 'prospective_owner.'))}
 
@@ -58,8 +59,8 @@ def history(request):
             target = event.restaurant.name if event.restaurant else 'Restaurante'
         if event.action.startswith('zone.'):
             target = event.after.get('name') or event.before.get('name') or 'Zona'
-        if event.action == 'table.created':
-            target = f"Mesa en {event.after.get('zone_name', 'su zona')}"
+        if event.action.startswith('table.'):
+            target = event.after.get('name') or event.before.get('name') or f"Mesa en {event.after.get('zone_name', 'su zona')}"
         results.append({'id': event.pk, 'created_at': event.created_at, 'action': event.action,
                         'category': ACTION_TYPES[event.action][0], 'action_type': ACTION_TYPES[event.action][1],
                         'actor': event.actor.email, 'target': target or 'Cuenta de usuario',
