@@ -29,7 +29,8 @@ class TableTests(APITestCase):
         return f'/api/zones/{(zone or self.zone).pk}/tables/'
 
     def create(self, zone=None):
-        response = self.client.post(self.path(zone), {'name': 'Mesa'}, format='json')
+        name = f'Mesa {Table.objects.filter(zone=zone or self.zone).count() + 1}'
+        response = self.client.post(self.path(zone), {'name': name}, format='json')
         self.assertEqual(response.status_code, 201, response.data)
         return response.data['id']
 
@@ -44,7 +45,7 @@ class TableTests(APITestCase):
             self.assertEqual(event.actor_id, actor.pk)
             self.assertEqual(event.restaurant_id, self.restaurant.pk)
             self.assertEqual(event.before, {})
-            self.assertEqual(event.after, {'name': 'Mesa', 'zone_id': str(self.zone.pk), 'zone_name': 'Salón'})
+            self.assertEqual(event.after, {'name': table.name, 'zone_id': str(self.zone.pk), 'zone_name': 'Salón'})
             self.assertIn(table_id, [row['id'] for row in self.client.get(self.path()).data])
             self.assertEqual(self.client.get(self.path(self.other_zone)).data, [])
             detail = self.client.get(f'/api/tables/{table_id}/').data
@@ -134,6 +135,6 @@ class TableTests(APITestCase):
         self.assertEqual(history['count'], 1)
         row = history['results'][0]
         self.assertEqual((row['category'], row['action_type']), ('Mesas', 'Creación'))
-        self.assertEqual(row['target'], 'Mesa')
-        self.assertEqual(row['after'], {'name': 'Mesa', 'zone_name': 'Salón'})
+        self.assertEqual(row['target'], 'Mesa 1')
+        self.assertEqual(row['after'], {'name': 'Mesa 1', 'zone_name': 'Salón'})
         self.assertEqual(AuditLog.objects.get(entity_id=table_id).after['zone_id'], str(self.zone.pk))

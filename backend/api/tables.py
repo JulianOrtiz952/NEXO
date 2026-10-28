@@ -1,4 +1,4 @@
-from django.db import OperationalError, transaction
+from django.db import IntegrityError, OperationalError, transaction
 from django.db.models import F
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import api_view
@@ -47,6 +47,23 @@ def snapshot(table):
     return {'name': table.name, 'zone_id': str(table.zone_id), 'zone_name': table.zone.name}
 
 
+def ensure_unique_name(zone, name, exclude_id=None):
+    # RF-016: scope to the already authorized zone, exclude the renamed table.
+    matches = Table.objects.filter(zone=zone, name_key=name.strip().casefold())
+    if exclude_id is not None:
+        matches = matches.exclude(pk=exclude_id)
+    if matches.exists():
+        raise ValidationError({'detail': 'Ya existe una mesa con ese nombre o número en esta zona. Elige otro identificador.'})
+
+
+def duplicate_response(error):
+    # RF-016: translate only the known unique violation, not unrelated audit errors.
+    message = str(error)
+    if 'table_zone_name_unique' not in message and 'api_table.zone_id, api_table.name_key' not in message:
+        raise error
+    return Response({'detail': 'Ya existe una mesa con ese nombre o número en esta zona. Elige otro identificador.'}, status=400)
+
+
 @api_view(['GET', 'POST'])
 def zone_tables(request, zone_id):
     try:
@@ -65,9 +82,12 @@ def zone_tables(request, zone_id):
             # RF-014: count under the same lock as creation, never from client data.
             if Table.objects.filter(zone=zone).count() >= MAX_TABLES_PER_ZONE:
                 raise ValidationError({'detail': 'Esta zona ya tiene el máximo de 100 mesas. Selecciona otra zona para crear una nueva mesa.'})
+            ensure_unique_name(zone, name)
             table = Table.objects.create(zone=zone, name=name)
             AuditLog.objects.create(restaurant=membership.restaurant, actor=request.user, action='table.created',
                                     entity_id=str(table.pk), after=snapshot(table))
+    except IntegrityError as error:
+        return duplicate_response(error)
     except OperationalError as error:
         if 'locked' not in str(error).lower():
             raise
@@ -90,10 +110,13 @@ def table_details(request, table_id):
             table = get_object_or_404(Table.objects.select_related('zone'), pk=table_id, zone__restaurant=membership.restaurant)
             before = snapshot(table)
             if table.name != name:
+                ensure_unique_name(table.zone, name, exclude_id=table.pk)
                 table.name = name
                 table.save(update_fields=['name'])
                 AuditLog.objects.create(restaurant=membership.restaurant, actor=request.user, action='table.name_changed',
                                         entity_id=str(table.pk), before=before, after=snapshot(table))
+    except IntegrityError as error:
+        return duplicate_response(error)
     except OperationalError as error:
         if 'locked' not in str(error).lower():
             raise

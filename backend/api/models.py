@@ -57,7 +57,19 @@ class Table(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     zone = models.ForeignKey(Zone, on_delete=models.PROTECT)
     name = models.CharField(max_length=100)
+    name_key = models.CharField(max_length=300, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        constraints = [models.CheckConstraint(condition=~models.Q(name=''), name='table_name_not_empty')]
+        constraints = [
+            models.CheckConstraint(condition=~models.Q(name=''), name='table_name_not_empty'),
+            models.CheckConstraint(condition=~models.Q(name_key=''), name='table_name_key_not_empty'),
+            models.UniqueConstraint(fields=['zone', 'name_key'], name='table_zone_name_unique'),
+        ]
+
+    def save(self, *args, **kwargs):
+        # RF-016: keep the comparison key synchronized for ordinary ORM writes.
+        self.name_key = self.name.strip().casefold()
+        if kwargs.get('update_fields') is not None:
+            kwargs['update_fields'] = set(kwargs['update_fields']) | {'name_key'}
+        return super().save(*args, **kwargs)

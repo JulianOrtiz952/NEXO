@@ -1,6 +1,6 @@
 # Mesas por zona — DN-29 / RF-013
 
-Plan y CA de DN-29 aprobados por el usuario en el chat el 2026-10-28: alta y consulta de mesas asociadas a zonas. DN-30 / RF-014 y DN-31 / RF-015 se incorporan con los alcances aprobados más abajo. DN-32 (identificadores duplicados) y estados operativos siguen pendientes; no se dan por implementados.
+Plan y CA de DN-29 aprobados por el usuario en el chat el 2026-10-28: alta y consulta de mesas asociadas a zonas. DN-30 / RF-014, DN-31 / RF-015 y DN-32 / RF-016 se incorporan con los alcances aprobados más abajo. Los estados operativos siguen pendientes; no se dan por implementados.
 
 ## Criterios aprobados
 
@@ -70,7 +70,7 @@ Plan aprobado y autorización explícita del usuario el 2026-10-28 para añadir 
 - Evento `table.name_changed`: snapshot anterior/nuevo con nombre y zona, actor, entidad y restaurante. Se clasifica como «Mesas · Cambio de nombre». Los eventos de alta nuevos incluyen nombre; los anteriores permanecen intactos y su presentación sigue usando la zona histórica si carecen de nombre.
 - Formularios NEXO de alta y edición muestran el nombre en cada tarjeta y conservan los borradores ante errores/actualización periódica. Los mensajes de validación son españoles y no desaparecen por la recarga de zonas. Nombres como `OWNER` o `toString` se muestran como texto, sin traducirlos como roles en el Historial.
 - La pantalla actual es de configuración. La vista operativa de Mesero/Caja corresponde al flujo de visualización DN-104 / RF-088 del Sprint 04; no se amplían permisos operativos ni se afirma validado ese flujo futuro. Los nombres quedarán disponibles en las respuestas de los endpoints autorizados para las vistas que se implementen.
-- La unicidad por zona corresponde a DN-32 / RF-016, todavía pendiente. DN-31 no incorpora una restricción de duplicados.
+- DN-31 no incorporó la restricción de duplicados; se añade en DN-32 / RF-016, descrito más abajo.
 
 ### Migración 0006 para revisión
 
@@ -90,3 +90,33 @@ Probada aplicación/reversión/reaplicación en BD de pruebas con varias zonas y
 Verificación DN-31: 82 pruebas Django correctas (siete nuevas de nombres/migración), regresión específica de 18 pruebas tras ajustar mensajes, check, consistencia de migraciones y lint/build correctos. Frontend JavaScript sin script typecheck. Pruebas existentes de alta/capacidad adaptadas al nombre obligatorio. Navegador QA: nombres iniciales, edición «Mesa 1» → «Ventana», alta «12», error de blancos persistente, recarga, historial anterior/nuevo filtrado, restaurante B con sus propios nombres, Mesero sin gestión y edición móvil «Ventana principal» a 390 px sin desbordamiento.
 
 Pendientes: validación final del usuario y posterior comprobación del nombre en la futura vista operativa. Migración local 0006 aplicada con autorización; Jira no se cierra automáticamente.
+
+## Identificador único — DN-32 / RF-016
+
+Plan y CA aprobados explícitamente por el usuario el 2026-10-28 antes de tocar el esquema. Crear o renombrar una mesa debe rechazar un identificador ocupado en su zona, ignorando mayúsculas y espacios exteriores. El mismo identificador se permite en otras zonas y restaurantes. No se quitan acentos, ceros iniciales ni espacios interiores.
+
+- `Table.name_key = name.strip().casefold()` conserva la presentación en `name` y compara con clave Unicode. Capacidad de 300 caracteres para admitir expansiones de `casefold` de nombres válidos de 100 caracteres, sin reducir el máximo aprobado de RF-015.
+- Restricción única BD `(zone, name_key)` y comprobación de clave no vacía. `save()` sincroniza la clave, también al actualizar solo `name`; las operaciones de carga masiva que omiten `save()` deben proporcionar explícitamente la clave canónica. No hay endpoints de importación ni de traslado en este alcance.
+- Alta y edición comprueban duplicados dentro de la zona autorizada y del bloqueo/transacción existentes. La edición excluye la propia mesa: mantener el nombre no crea un evento; cambiar solo mayúsculas está permitido y se audita como edición de presentación.
+- El duplicado devuelve 400 con explicación en español, sin modificar mesa, ID, fecha o auditoría. Se traduce la violación de la restricción única conocida; otras excepciones de integridad no se disfrazan como duplicados. La contención temporal SQLite sigue respondiendo 409 para reintentar.
+- La interfaz explica la regla y conserva el nombre escrito ante el rechazo. Se reutilizan formularios NEXO y alertas accesibles de DN-31; el servidor es quien decide la unicidad, incluso con solicitudes manipuladas o simultáneas.
+- Se mantiene aislamiento por la relación zona→restaurante y los permisos OWNER/ADMIN. No se consulta la existencia de nombres en zonas ajenas para responder a una mutación local.
+
+### Migración 0007 para revisión
+
+`backend/api/migrations/0007_table_unique_name.py` añade la clave temporalmente nullable, valida todos los nombres existentes antes de rellenarla y aplica la obligatoriedad/restricción única. Si encuentra nombres duplicados según la comparación aprobada o vacíos al recortar, aborta con explicación y revierte la migración completa. No renombra ni elimina mesas, ni modifica eventos anteriores.
+
+Aplicación prevista **solo tras revisión y autorización del usuario**, con respaldo previo y nueva comprobación de colisiones:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe manage.py migrate api 0007
+```
+
+Reversión técnica: `manage.py migrate api 0006`. Retira únicamente la clave auxiliar y sus dos restricciones; conserva nombres visibles, UUID, fechas, zonas y auditorías. Requiere revisión y respaldo. Pruebas verifican fallo ante colisiones sin cambiar registros, posterior aplicación tras corregir explícitamente el dato de prueba, reversión y reaplicación.
+
+**No aplicada a `backend/db.sqlite3`.** La inspección inicial de diez mesas locales no encontró duplicados; esto no sustituye la validación transaccional al aplicar la migración. No se modificaron datos reales, estados de Jira ni dependencias.
+
+Verificación DN-32: 90 pruebas Django correctas, incluidas ocho nuevas para duplicados de alta/edición, mayúsculas/espacios/Unicode, exclusión de la propia mesa, identidad/históricos intactos, coincidencia permitida entre zonas/tenants, restricción BD, sincronización de clave, migración y carreras reales de alta y edición. Regresión anterior adaptada para usar nombres válidos y únicos en los datos de prueba. Django check, consistencia de migraciones, lint y build correctos; frontend JavaScript sin script typecheck.
+
+Navegador QA aislado: rechazos de alta ` mESA 1 ` y renombrado de Mesa 2 a `MESA 1` en Salón, nombres originales conservados, alta `Mesa 1` permitida en Terraza y ausencia de auditorías de cambios de nombre por intentos rechazados. Revisado mensaje y formulario en móvil de 390 px sin desbordamiento horizontal y escritorio. Pendientes: revisión/aplicación autorizada de 0007 y validación final del usuario; no cerrar Jira automáticamente.

@@ -27,8 +27,8 @@ class TableCapacityTests(APITestCase):
         self.assertEqual(self.client.get(self.path).data, [])
         first = self.client.post(self.path, {'name': 'Mesa'}, format='json')
         self.assertEqual(first.status_code, 201)
-        Table.objects.bulk_create([Table(zone=self.zone, name='Mesa') for _ in range(98)])
-        hundredth = self.client.post(self.path, {'name': 'Mesa'}, format='json')
+        Table.objects.bulk_create([Table(zone=self.zone, name=f'Mesa {index}', name_key=f'mesa {index}') for index in range(98)])
+        hundredth = self.client.post(self.path, {'name': 'Mesa 100'}, format='json')
         self.assertEqual(hundredth.status_code, 201)
         ids = set(Table.objects.values_list('pk', flat=True))
         self.assertEqual(len(ids), 100)
@@ -41,14 +41,14 @@ class TableCapacityTests(APITestCase):
         self.assertEqual(len(self.client.get(self.path).data), 100)
 
     def test_capacity_is_per_zone_and_foreign_counts_never_grant_access(self):
-        Table.objects.bulk_create([Table(zone=self.zone, name='Mesa') for _ in range(100)])
+        Table.objects.bulk_create([Table(zone=self.zone, name=f'Mesa {index}', name_key=f'mesa {index}') for index in range(100)])
         other_zone = Zone.objects.create(restaurant=self.restaurant, name='Terraza', name_key='terraza')
         self.assertEqual(self.client.post(f'/api/zones/{other_zone.pk}/tables/', {'name': 'Mesa'}, format='json').status_code, 201)
         foreign = get_user_model().objects.create_user(username='capacity-foreign')
         restaurant = Restaurant.objects.create(name='Foreign', initial_owner=foreign)
         Membership.objects.create(user=foreign, restaurant=restaurant, role='OWNER')
         zone = Zone.objects.create(restaurant=restaurant, name='Salón', name_key='salón')
-        Table.objects.bulk_create([Table(zone=zone, name='Mesa') for _ in range(100)])
+        Table.objects.bulk_create([Table(zone=zone, name=f'Mesa {index}', name_key=f'mesa {index}') for index in range(100)])
         self.assertEqual(self.client.post(f'/api/zones/{zone.pk}/tables/', {'name': 'Mesa'}, format='json').status_code, 404)
         self.assertEqual(self.client.get(f'/api/zones/{zone.pk}/tables/').status_code, 404)
         self.assertEqual(Table.objects.filter(zone=zone).count(), 100)
@@ -61,7 +61,7 @@ class TableCapacityConcurrencyTests(TransactionTestCase):
     def test_two_simultaneous_creations_cannot_exceed_hundred(self):
         # RF-014, RNF-019/027: last slot is checked inside the creation transaction.
         owner, restaurant, zone = fixture()
-        Table.objects.bulk_create([Table(zone=zone, name='Mesa') for _ in range(99)])
+        Table.objects.bulk_create([Table(zone=zone, name=f'Mesa {index}', name_key=f'mesa {index}') for index in range(99)])
         barrier = Barrier(2)
         path = f'/api/zones/{zone.pk}/tables/'
 
