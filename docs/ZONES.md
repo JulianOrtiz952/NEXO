@@ -38,7 +38,7 @@ cd backend
 
 Reversión técnica: `manage.py migrate api 0003`. Elimina la tabla de zonas y sus datos; requiere respaldo y revisión, y no debe ejecutarse como mecanismo para deshacer cambios de una zona. Conserva las identidades y auditorías previas.
 
-Aplicación → reversión → reaplicación verificadas en BD QA temporal, conservando tres usuarios y membresías. **No aplicada a `backend/db.sqlite3`.**
+Aplicación → reversión → reaplicación verificadas en BD QA temporal, conservando tres usuarios y membresías. **Revisada y autorizada por el usuario; aplicada a `backend/db.sqlite3` el 2026-10-28**, con respaldo verificado `backend/nexo-before-0004-20261028-164430.sqlite3`. Integridad SQLite correcta antes y después; se conservaron cinco usuarios, un restaurante, cuatro membresías y catorce auditorías. Siete pruebas de zonas/migraciones, check, lint y build correctos tras aplicarla. Backend reiniciado sobre la base local.
 
 ## Validación del 2026-10-28
 
@@ -47,4 +47,4 @@ Aplicación → reversión → reaplicación verificadas en BD QA temporal, cons
 - Django check, consistencia de migraciones, lint y build correctos. El frontend usa JavaScript y no tiene script `typecheck`.
 - Navegador con BD temporal: alta → renombrar → confirmar desactivación → reactivar, rechazo de duplicado, persistencia tras recargar, clasificación/filtro y limpieza del Historial, restaurante B sin zonas ni historial de A, acceso directo de Mesero sin pantalla de gestión.
 - Revisión móvil con viewport solicitado de 390 px; corregido ancho mínimo heredado para evitar desbordamiento del portal. Sin datos reales ni cambios de estado en Jira.
-- Pendientes: revisión/aplicación autorizada de migración local y validación final del usuario. No declarar DN-28 cerrado en Jira.
+- Pendiente: validación final del usuario. Migración local aplicada con autorización; no declarar DN-28 cerrado en Jira.
