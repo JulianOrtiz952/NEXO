@@ -7,6 +7,7 @@ const roles = { OWNER: 'Dueño', ADMIN: 'Administrador', CASHIER: 'Caja', WAITER
 
 export default function Identity() {
   const [user, setUser] = useState(null)
+  const [section, setSection] = useState(() => window.location.hash.slice(1))
   const [rows, setRows] = useState([])
   const [owners, setOwners] = useState([])
   const [message, setMessage] = useState('')
@@ -62,6 +63,12 @@ export default function Identity() {
     window.addEventListener('focus', checkAccess)
     return () => { revision.current += 1; clearInterval(timer); window.removeEventListener('focus', checkAccess) }
   }, [])
+  useEffect(() => {
+    const changeSection = () => setSection(window.location.hash.slice(1))
+    window.addEventListener('hashchange', changeSection)
+    return () => window.removeEventListener('hashchange', changeSection)
+  }, [])
+  useEffect(() => { window.scrollTo(0, 0) }, [section])
   async function logout() {
     try { await api('auth/logout/', { method: 'POST' }) }
     catch (error) { await handleError(error); return }
@@ -141,39 +148,41 @@ export default function Identity() {
   if (!user) return <main className="identity-gate"><a className="welcome-logo" href="/">NEX<span>O</span></a><h1>Tu espacio en NEXO</h1><p role="status">{message || 'Validando tu acceso…'}</p><a className="identity-primary" href="/login">Iniciar sesión →</a></main>
   const platform = user.role === 'PLATFORM_ADMIN'
   const canManage = user.modules.includes('users')
+  const availableSections = platform ? ['accounts', 'restaurants', 'history'] : canManage ? ['accounts', 'history', 'access'] : ['access']
+  const activeSection = availableSections.includes(section) ? section : availableSections[0]
+  const sectionLabels = { accounts: platform ? 'Dueños' : 'Usuarios y roles', restaurants: 'Restaurantes', history: 'Historial', access: 'Mi acceso' }
   return <div className="identity-shell">
     <aside className="identity-sidebar">
       <a className="identity-brand" href="/">NEX<span>O</span></a><p className="identity-caption">CADA CONEXIÓN CUENTA</p>
       <p className="identity-section-label">TU ESPACIO</p>
       <nav aria-label="Gestión autorizada">
-        {(platform || canManage) && <a href="#history">◷ <span>Historial</span></a>}
-        {platform ? <><a href="#accounts">◎ <span>Futuros Dueños</span></a><a href="#restaurants">▦ <span>Restaurantes</span></a></> : canManage ? <a href="#accounts">◎ <span>Usuarios y roles</span></a> : <a href="#access">◇ <span>Mi acceso</span></a>}
+        {availableSections.map(item => <a key={item} href={`#${item}`} aria-current={activeSection === item ? 'page' : undefined}><span aria-hidden="true">{({ accounts: '◎', restaurants: '▦', history: '◷', access: '◇' })[item]}</span><span>{sectionLabels[item]}</span></a>)}
       </nav>
       <div className="identity-side-note"><span>Una operación conectada.</span><p>{platform ? 'Cada restaurante, con su propio equipo y su propio espacio.' : 'Las personas correctas, en cada lugar de tu restaurante.'}</p></div>
       <div className="identity-profile"><span className="identity-avatar">{user.email.slice(0, 1).toUpperCase()}</span><div><strong>{roles[user.role] || 'Administrador global'}</strong><small>{user.email}</small></div></div>
       <button className="identity-logout" onClick={logout}>Cerrar sesión ↗</button>
     </aside>
     <main className="identity-main">
-      <header className="identity-topbar"><span>NEXO / {platform ? 'Plataforma' : user.restaurant.name}</span><span className="identity-session">Sesión de 1 hora</span></header>
+      <header className="identity-topbar"><span>NEXO / {platform ? 'Plataforma' : user.restaurant.name} / {sectionLabels[activeSection]}</span><span className="identity-session">Sesión de 1 hora</span></header>
       <div className="identity-content">
-        <header className="identity-heading"><p className="identity-eyebrow">{platform ? 'ADMINISTRACIÓN DE PLATAFORMA' : 'TU EQUIPO, EN SINTONÍA'}</p><h1>{platform ? 'Conecta cada restaurante.' : canManage ? 'Personas que hacen equipo.' : 'Bienvenido a tu espacio.'}</h1><p>{platform ? 'Crea la cuenta del Dueño y vincúlala a su restaurante, desde un mismo lugar.' : canManage ? `Administra los accesos de ${user.restaurant.name}. Cada persona, con el rol que necesita.` : 'Tu acceso está asociado únicamente a tu restaurante.'}</p></header>
-        <div className="identity-summary"><div><span>{platform ? 'RESTAURANTES' : 'RESTAURANTE'}</span><strong>{platform ? rows.length : user.restaurant.name}</strong></div><div><span>{platform ? 'DUEÑOS POR VINCULAR' : 'TU ROL'}</span><strong>{platform ? owners.length : roles[user.role]}</strong></div><div><span>ACCESO</span><strong>{platform ? 'Administración global' : 'Solo tu restaurante'}</strong></div></div>
+        <header className="identity-heading"><p className="identity-eyebrow">{platform ? 'ADMINISTRACIÓN DE PLATAFORMA' : 'TU RESTAURANTE, CONECTADO'}</p><h1>{activeSection === 'history' ? 'Cada cambio, con su historia.' : activeSection === 'restaurants' ? 'Conecta cada restaurante.' : activeSection === 'access' ? 'Tu espacio en NEXO.' : platform ? 'Las personas detrás de cada espacio.' : 'Personas que hacen equipo.'}</h1><p>{activeSection === 'history' ? 'Consulta quién realizó cada cambio, cuándo ocurrió y cuáles fueron sus valores anteriores y nuevos.' : activeSection === 'access' ? 'Estos son los módulos habilitados para tu rol y tu restaurante.' : platform ? activeSection === 'restaurants' ? 'Crea restaurantes, vincula Dueños y administra su acceso.' : 'Crea las cuentas de futuros Dueños para vincularlas después a un restaurante.' : `Administra los accesos de ${user.restaurant.name}. Cada persona, con el rol que necesita.`}</p></header>
+        {activeSection !== 'history' && <div className="identity-summary"><div><span>{platform ? 'RESTAURANTES' : 'RESTAURANTE'}</span><strong>{platform ? rows.length : user.restaurant.name}</strong></div><div><span>{platform ? 'DUEÑOS POR VINCULAR' : 'TU ROL'}</span><strong>{platform ? owners.length : roles[user.role]}</strong></div><div><span>ACCESO</span><strong>{platform ? 'Administración global' : 'Solo tu restaurante'}</strong></div></div>}
         {message && <p className="identity-message" role="status">{message}</p>}
-        {(platform || canManage) && <div className="identity-grid">
-          <section className="identity-card" id="accounts"><div className="identity-card-heading"><span className="identity-step">{platform ? '01' : '◎'}</span><div><h2>{platform ? 'Crear cuenta del Dueño' : 'Crear usuario'}</h2><p>{platform ? 'La cuenta podrá ingresar cuando tenga un restaurante vinculado.' : 'El nuevo usuario pertenecerá a este restaurante.'}</p></div></div>
+        {(platform || canManage) && ['accounts', 'restaurants'].includes(activeSection) && <div className="identity-grid">
+          {activeSection === 'accounts' && <section className="identity-card" id="accounts"><div className="identity-card-heading"><span className="identity-step">{platform ? '01' : '◎'}</span><div><h2>{platform ? 'Crear cuenta del Dueño' : 'Crear usuario'}</h2><p>{platform ? 'La cuenta podrá ingresar cuando tenga un restaurante vinculado.' : 'El nuevo usuario pertenecerá a este restaurante.'}</p></div></div>
             <form className="identity-form" onSubmit={event => submit(event, platform ? 'owner' : 'user')}>
               <fieldset disabled={busy}><label>Correo electrónico<input name="email" required type="email" maxLength={150} autoComplete="off" placeholder="nombre@ejemplo.com" /></label><label>Contraseña inicial<input name="password" required type="password" autoComplete="new-password" placeholder="Crea una contraseña segura" /></label><small>Usa al menos 8 caracteres y evita contraseñas comunes o solo numéricas.</small>
                 {!platform && <label>Rol del usuario<select name="role" defaultValue="WAITER">{Object.entries(roles).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label>}
                 <button className="identity-primary" type="submit">{busy ? 'Guardando…' : platform ? 'Crear cuenta del Dueño →' : 'Crear usuario →'}</button>
               </fieldset>
             </form>
-          </section>
-          {platform ? <section className="identity-card" id="new-restaurant"><div className="identity-card-heading"><span className="identity-step">02</span><div><h2>Vincular nuevo restaurante</h2><p>Selecciona el correo del Dueño que administrará este espacio.</p></div></div>
+          </section>}
+          {platform && activeSection === 'restaurants' ? <section className="identity-card" id="new-restaurant"><div className="identity-card-heading"><span className="identity-step">02</span><div><h2>Vincular nuevo restaurante</h2><p>Selecciona el correo del Dueño que administrará este espacio.</p></div></div>
             <form className="identity-form" onSubmit={event => submit(event, 'restaurant')}><fieldset disabled={busy || !owners.length}><label>Nombre del restaurante<input name="name" required maxLength={160} placeholder="Nombre de tu restaurante" /></label><label>Dueño<select name="owner" required defaultValue=""><option value="" disabled>Selecciona un correo</option>{owners.map(owner => <option key={owner.id} value={owner.id}>{owner.email}</option>)}</select></label><button className="identity-primary" type="submit">Crear y vincular restaurante →</button></fieldset></form>
             {!owners.length && <p className="identity-hint">Primero crea una cuenta de Dueño. Solo aparecen cuentas activas sin restaurante.</p>}
-          </section> : <section className="identity-card"><p className="identity-eyebrow">ACCESOS CON PROPÓSITO</p><h2>Cada rol, en su lugar.</h2><p className="identity-hint">Dueño y Administrador gestionan usuarios. Caja incluye las funciones de Mesero. Cocina tiene su propio espacio de preparación.</p><div className="identity-role-list">{Object.entries(roles).map(([key, label]) => <span key={key}>{label}</span>)}</div><p className="identity-hint">Los permisos se comprueban también en el servidor.</p></section>}
+          </section> : !platform ? <section className="identity-card"><p className="identity-eyebrow">ACCESOS CON PROPÓSITO</p><h2>Cada rol, en su lugar.</h2><p className="identity-hint">Dueño y Administrador gestionan usuarios. Caja incluye las funciones de Mesero. Cocina tiene su propio espacio de preparación.</p><div className="identity-role-list">{Object.entries(roles).map(([key, label]) => <span key={key}>{label}</span>)}</div><p className="identity-hint">Los permisos se comprueban también en el servidor.</p></section> : null}
         </div>}
-        {(platform || canManage) && <section className="identity-card identity-directory" id={platform ? 'restaurants' : 'team'}><div className="identity-directory-heading"><div><p className="identity-eyebrow">{platform ? 'ESPACIOS CONECTADOS' : 'EQUIPO DEL RESTAURANTE'}</p><h2>{platform ? 'Restaurantes' : 'Usuarios y roles'}</h2></div><span className="identity-count">{rows.length} registros</span></div>
+        {((platform && activeSection === 'restaurants') || (canManage && activeSection === 'accounts')) && <section className="identity-card identity-directory" id={platform ? 'restaurants' : 'team'}><div className="identity-directory-heading"><div><p className="identity-eyebrow">{platform ? 'ESPACIOS CONECTADOS' : 'EQUIPO DEL RESTAURANTE'}</p><h2>{platform ? 'Restaurantes' : 'Usuarios y roles'}</h2></div><span className="identity-count">{rows.length} registros</span></div>
           {!rows.length ? <p className="identity-empty">{platform ? 'Tu primer restaurante empieza arriba. Crea una cuenta y vincula su espacio.' : 'Todavía no hay usuarios para mostrar.'}</p> : <ul className="identity-list">{rows.map(row => <li key={row.id}>{platform ? <>
             <div className="identity-row-heading"><div><h3>{row.name}</h3><p>{row.owners.map(owner => owner.email).join(', ') || 'Sin Dueño activo'}</p></div><span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span></div>
             <form className="identity-update" onSubmit={event => updateRestaurant(event, row.id)}><fieldset disabled={busy}><label>Estado<select name="is_active" defaultValue={String(row.is_active)} key={String(row.is_active)}><option value="true">Activo</option><option value="false">Inactivo</option></select></label><label>Vincular otro Dueño<select name="owner" defaultValue=""><option value="">Conservar asignación actual</option>{owners.map(owner => <option key={owner.id} value={owner.id}>{owner.email}</option>)}</select></label><button className="identity-secondary" type="submit">Guardar cambios</button></fieldset></form>
@@ -195,8 +204,8 @@ export default function Identity() {
             </form>
           </>}</li>)}</ul>}
         </section>}
-        {(platform || canManage) && <History key={`${user.id}-${user.role}`} refreshKey={historyVersion} />}
-        <section className="identity-access" id="access"><h2>Tus módulos autorizados</h2><div>{user.modules.map(module => <span key={module}>{labels[module]}</span>)}</div>{!platform && <p>Los módulos operativos se incorporarán en sus sprints correspondientes.</p>}</section>
+        {(platform || canManage) && activeSection === 'history' && <History key={`${user.id}-${user.role}`} refreshKey={historyVersion} />}
+        {activeSection === 'access' && <section className="identity-access" id="access"><h2>Tus módulos autorizados</h2><div>{user.modules.map(module => <span key={module}>{labels[module]}</span>)}</div>{!platform && <p>Los módulos operativos se incorporarán en sus sprints correspondientes.</p>}</section>}
         <footer className="identity-footer">NEXO · Cada conexión cuenta.</footer>
       </div>
     </main>
