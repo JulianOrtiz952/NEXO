@@ -8,6 +8,7 @@ urlpatterns += [
     path('auth/logout/', identity.logout),
     path('auth/me/', identity.me),
     path('users/', identity.users),
+    path('users/<int:user_id>/', identity.user_details),
     path('platform/restaurants/', identity.restaurants),
     path('platform/owners/', identity.prospective_owners),
     path('platform/initial-owner-role/', identity.initial_owner_role),

@@ -10,12 +10,14 @@ export default function Identity() {
   const [owners, setOwners] = useState([])
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  const [emailDrafts, setEmailDrafts] = useState({})
   const revision = useRef(0)
   function clearAccess(error) {
     revision.current += 1
     setUser(null)
     setRows([])
     setOwners([])
+    setEmailDrafts({})
     setMessage(error.message)
     if (error.status === 401 || error.status === 403) sessionStorage.removeItem('nexo-token')
   }
@@ -25,6 +27,7 @@ export default function Identity() {
       const profile = await api('auth/me/')
       if (current !== revision.current) return false
       setUser(profile)
+      if (!profile.modules.includes('users')) setEmailDrafts({})
       setRows([])
       setOwners([])
       const path = profile.modules.includes('users') ? 'users/' : profile.modules.includes('restaurants') ? 'platform/restaurants/' : null
@@ -58,6 +61,7 @@ export default function Identity() {
     catch (error) { await handleError(error); return }
     revision.current += 1
     setUser(null); setRows([]); setOwners([])
+    setEmailDrafts({})
     sessionStorage.removeItem('nexo-token')
     window.location.assign('/login')
   }
@@ -106,6 +110,17 @@ export default function Identity() {
     } catch (error) { await handleError(error) }
     finally { setBusy(false) }
   }
+  async function updateEmail(event, id) {
+    event.preventDefault()
+    const email = new FormData(event.currentTarget).get('email')
+    setBusy(true); setMessage('')
+    try {
+      await api(`users/${id}/`, { method: 'PATCH', body: JSON.stringify({ email }) })
+      setEmailDrafts(current => { const updated = { ...current }; delete updated[id]; return updated })
+      if (await refresh()) setMessage('Correo actualizado. Usa el nuevo correo para el próximo inicio de sesión.')
+    } catch (error) { await handleError(error) }
+    finally { setBusy(false) }
+  }
   if (!user) return <main className="identity-gate"><a className="welcome-logo" href="/">NEX<span>O</span></a><h1>Tu espacio en NEXO</h1><p role="status">{message || 'Validando tu acceso…'}</p><a className="identity-primary" href="/login">Iniciar sesión →</a></main>
   const platform = user.role === 'PLATFORM_ADMIN'
   const canManage = user.modules.includes('users')
@@ -150,6 +165,9 @@ export default function Identity() {
             </form>}
           </> : <>
             <div className="identity-row-heading"><div className="identity-person"><span className="identity-avatar">{row.email.slice(0, 1).toUpperCase()}</span><div><h3>{row.email}</h3><p>Miembro de {user.restaurant.name}</p></div></div><span className="identity-badge">{roles[row.role]}</span></div>
+            <form className="identity-update identity-role-update" aria-label={`Editar correo de ${row.email}`} onSubmit={event => updateEmail(event, row.id)}>
+              <fieldset disabled={busy}><label>Correo de {row.email}<input name="email" type="email" required maxLength={150} autoComplete="off" value={emailDrafts[row.id] ?? row.email} onChange={event => setEmailDrafts(current => ({ ...current, [row.id]: event.target.value }))} /></label><button className="identity-secondary" type="submit">Guardar correo</button></fieldset>
+            </form>
             <form className="identity-update identity-role-update" aria-label={`Cambiar rol de ${row.email}`} onSubmit={event => updateRole(event, row.id)}>
               {(row.is_initial_owner || row.is_last_owner) && <p className="identity-hint">{row.is_initial_owner ? 'Primer Dueño protegido: solo el administrador global puede cambiar su rol de Dueño.' : 'Debe conservarse al menos un Dueño activo. Asigna otro antes de cambiar este rol.'}</p>}
               <fieldset disabled={busy || (row.role === 'OWNER' && (row.is_initial_owner || row.is_last_owner))}><label>Rol de {row.email}<select name="role" defaultValue={row.role} key={row.role}>{Object.entries(roles).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button className="identity-secondary" type="submit">Guardar rol</button></fieldset>

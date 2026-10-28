@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from .authentication import membership_for
 from .models import AccessToken, Membership, Restaurant, AuditLog
 from .ownership import active_owners, change_role
+from .user_management import edit_email
 
 User = get_user_model()
 ROLE_MODULES = {
@@ -143,6 +144,22 @@ def users(request):
 class RestaurantInput(serializers.Serializer):
     name = serializers.CharField(max_length=160)
     owner = serializers.IntegerField(min_value=1)
+
+
+@api_view(['PATCH'])
+def user_details(request, user_id):
+    membership = manager(request)
+    class EmailUpdate(serializers.Serializer):
+        email = serializers.EmailField(max_length=150)
+
+        def validate(self, data):
+            if set(self.initial_data) - {'email'}:
+                raise serializers.ValidationError('Solo puedes modificar el correo en esta operación.')
+            return data
+    serializer = EmailUpdate(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    return Response(edit_email(actor=request.user, restaurant_id=membership.restaurant_id,
+                               user_id=user_id, email=serializer.validated_data['email']))
 
 
 @api_view(['GET', 'POST', 'PATCH'])

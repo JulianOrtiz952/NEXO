@@ -36,6 +36,10 @@ La reversión de las tablas nuevas es `manage.py migrate api zero`: elimina dato
 
 ## Pantallas y API
 
+- DN-22 / RF-006: PATCH `/api/users/<id>/` recibe únicamente `email`. OWNER/ADMIN editan usuarios del restaurante autenticado; ID ajeno/inexistente responde 404 y los demás roles, incluido el global, no pueden editar. Valida formato, longitud y disponibilidad sin distinguir si el correo pertenece a otro restaurante. Normaliza a minúsculas y sincroniza el nombre de acceso de Django; preserva ID, contraseña, estado, rol, primer Dueño y autoría histórica. Cambio y auditoría `user.email_changed` con anterior/nuevo son atómicos; guardar el mismo correo no agrega auditoría. El siguiente login usa el nuevo correo, y las sesiones existentes actualizan el perfil al comprobar acceso. Formulario integrado en el directorio NEXO; borradores conservados al actualizar permisos y eliminados al perder acceso o cerrar sesión.
+
+DN-22 verificado el 2026-10-27: 40 pruebas Django (seis nuevas), check, consistencia de migraciones, lint/build. Navegador sobre BD temporal: guardado, duplicado rechazado, persistencia, diseño móvil y login con correo nuevo. PATCH local por proxy 5173 responde 200 con petición sin cambios en una cuenta real; sesiones temporales eliminadas. No requiere migraciones ni dependencias y no modifica el estado de Jira.
+
 - `/login`: autenticación real; `/app`: portal con roles, alta/listado de usuarios o administración global.
 - `/example`: demostración pública con datos ficticios; `/api/menu/` sigue siendo el catálogo estático de la demo y no contiene datos privados de tenants.
 - POST `/api/auth/login/`, POST `/api/auth/logout/`, GET `/api/auth/me/`.
