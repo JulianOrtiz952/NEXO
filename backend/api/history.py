@@ -19,6 +19,7 @@ ACTION_TYPES = {
     'zone.created': ('Zonas', 'Creación'),
     'zone.updated': ('Zonas', 'Edición'),
     'zone.status_changed': ('Zonas', 'Cambio de estado'),
+    'table.created': ('Mesas', 'Creación'),
 }
 GLOBAL_ACTIONS = {key for key in ACTION_TYPES if key.startswith(('user.', 'restaurant.', 'prospective_owner.'))}
 
@@ -45,7 +46,7 @@ def history(request):
     paginator = PageNumberPagination()
     paginator.page_size = 20
     page = paginator.paginate_queryset(rows.order_by('-created_at', '-pk'), request)
-    visible_keys = {'email', 'role', 'is_active', 'name', 'owner', 'cascading'}
+    visible_keys = {'email', 'role', 'is_active', 'name', 'owner', 'cascading', 'zone_name'}
     results = []
     for event in page:
         target = event.after.get('email') or event.before.get('email')
@@ -57,6 +58,8 @@ def history(request):
             target = event.restaurant.name if event.restaurant else 'Restaurante'
         if event.action.startswith('zone.'):
             target = event.after.get('name') or event.before.get('name') or 'Zona'
+        if event.action == 'table.created':
+            target = f"Mesa en {event.after.get('zone_name', 'su zona')}"
         results.append({'id': event.pk, 'created_at': event.created_at, 'action': event.action,
                         'category': ACTION_TYPES[event.action][0], 'action_type': ACTION_TYPES[event.action][1],
                         'actor': event.actor.email, 'target': target or 'Cuenta de usuario',

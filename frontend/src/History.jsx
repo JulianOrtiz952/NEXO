@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from './identityApi.js'
 
-const actions = { 'user.created': 'Usuario creado', 'user.email_changed': 'Correo modificado', 'user.role_changed': 'Rol modificado', 'user.status_changed': 'Estado del usuario modificado', 'prospective_owner.created': 'Cuenta de Dueño creada', 'zone.created': 'Zona creada', 'zone.updated': 'Zona modificada', 'zone.status_changed': 'Estado de la zona modificado', 'restaurant.created': 'Restaurante creado', 'restaurant.owner_assigned': 'Dueño vinculado', 'restaurant.status_changed': 'Estado del restaurante modificado' }
-const fields = { email: 'Correo', role: 'Rol', is_active: 'Estado', name: 'Nombre', owner: 'Dueño vinculado', cascading: 'Afecta al acceso del restaurante' }
+const actions = { 'table.created': 'Mesa creada', 'user.created': 'Usuario creado', 'user.email_changed': 'Correo modificado', 'user.role_changed': 'Rol modificado', 'user.status_changed': 'Estado del usuario modificado', 'prospective_owner.created': 'Cuenta de Dueño creada', 'zone.created': 'Zona creada', 'zone.updated': 'Zona modificada', 'zone.status_changed': 'Estado de la zona modificado', 'restaurant.created': 'Restaurante creado', 'restaurant.owner_assigned': 'Dueño vinculado', 'restaurant.status_changed': 'Estado del restaurante modificado' }
+const fields = { zone_name: 'Zona', email: 'Correo', role: 'Rol', is_active: 'Estado', name: 'Nombre', owner: 'Dueño vinculado', cascading: 'Afecta al acceso del restaurante' }
 const roles = { OWNER: 'Dueño', ADMIN: 'Administrador', CASHIER: 'Caja', WAITER: 'Mesero', KITCHEN: 'Cocina' }
 function describe(values) {
   return Object.entries(values).map(([key, value]) => `${fields[key] || key}: ${key === 'is_active' ? value ? 'Activo' : 'Inactivo' : key === 'cascading' ? value ? 'Sí' : 'No' : roles[value] || value}`).join(' · ') || 'Sin valor anterior'
