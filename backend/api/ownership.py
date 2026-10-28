@@ -2,6 +2,7 @@ from django.db import connection, transaction, OperationalError
 from django.db.models import F
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 from .models import AuditLog, Membership, Restaurant
+from .authentication import ensure_restaurant_access
 
 
 def active_owners(restaurant):
@@ -33,6 +34,7 @@ def _change_role(*, actor, restaurant_id, user_id, role, platform=False):
                 raise PermissionDenied('Esta operación requiere un administrador global.')
             user_id = restaurant.initial_owner_id
         else:
+            ensure_restaurant_access(restaurant)
             manager = Membership.objects.filter(restaurant=restaurant, user=actor, user__is_active=True,
                                                 is_active=True, role__in=['OWNER', 'ADMIN']).first()
             if not manager or not restaurant.is_active or actor.is_superuser:

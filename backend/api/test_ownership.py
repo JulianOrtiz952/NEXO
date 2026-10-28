@@ -96,7 +96,7 @@ class OwnershipTests(APITestCase):
         self.assertEqual(self.global_change().status_code, 200)
         self.client.force_authenticate(self.platform)
         row = self.client.get('/api/platform/restaurants/').data[0]
-        self.assertEqual(row['initial_owner'], {'email': self.first.email, 'role': 'ADMIN'})
+        self.assertEqual(row['initial_owner'], {'email': self.first.email, 'role': 'ADMIN', 'is_active': True})
         self.assertEqual(row['owners'], [{'id': self.second.pk, 'email': self.second.email}])
 
 

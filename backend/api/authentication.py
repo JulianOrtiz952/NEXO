@@ -5,13 +5,23 @@ from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
 from .models import AccessToken, Membership
 
 
+def ensure_restaurant_access(restaurant):
+    # RF-009: the initial owner's suspension blocks every local identity.
+    if restaurant.initial_owner_id and not Membership.objects.filter(
+        restaurant=restaurant, user_id=restaurant.initial_owner_id,
+        user__is_active=True, is_active=True,
+    ).exists():
+        raise PermissionDenied('El acceso de este restaurante está suspendido. Contacta al administrador global.')
+
+
 def membership_for(user):
     try:
-        membership = Membership.objects.select_related('restaurant').get(user=user, is_active=True, restaurant__is_active=True)
+        membership = Membership.objects.select_related('restaurant').get(user=user, user__is_active=True, is_active=True, restaurant__is_active=True)
     except Membership.DoesNotExist:
         raise PermissionDenied('No tienes una membresía activa en un restaurante.')
     if user.is_superuser:
         raise PermissionDenied('El administrador global no tiene acceso operativo.')
+    ensure_restaurant_access(membership.restaurant)
     return membership
 
 

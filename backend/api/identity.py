@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction, IntegrityError
+from django.db.models import F
 from django.utils import timezone
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes
@@ -14,7 +15,7 @@ from rest_framework.response import Response
 from .authentication import membership_for
 from .models import AccessToken, Membership, Restaurant, AuditLog
 from .ownership import active_owners, change_role
-from .user_management import edit_email
+from .user_management import edit_email, change_user_status
 
 User = get_user_model()
 ROLE_MODULES = {
@@ -41,10 +42,18 @@ def login(request):
     user = authenticate(request, username=candidate.username if candidate else '', password=request.data.get('password', ''))
     if not user:
         return Response({'detail': 'Correo o contraseña incorrectos.'}, status=401)
-    data = profile(user)
-    raw = secrets.token_urlsafe(48)
-    expiry = timezone.now() + timedelta(hours=1)
-    AccessToken.objects.create(digest=hashlib.sha256(raw.encode()).hexdigest(), user=user, expires_at=expiry)
+    membership = Membership.objects.filter(user=user).first() if not user.is_superuser else None
+    with transaction.atomic():
+        # RF-009: serialize issuance with suspension to prevent surviving tokens.
+        if membership:
+            Restaurant.objects.filter(pk=membership.restaurant_id).update(is_active=F('is_active'))
+        user = User.objects.get(pk=user.pk)
+        if not user.is_active:
+            return Response({'detail': 'Correo o contraseña incorrectos.'}, status=401)
+        data = profile(user)
+        raw = secrets.token_urlsafe(48)
+        expiry = timezone.now() + timedelta(hours=1)
+        AccessToken.objects.create(digest=hashlib.sha256(raw.encode()).hexdigest(), user=user, expires_at=expiry)
     return Response({'token': raw, 'expires_at': expiry.isoformat(), 'user': data})
 
 
@@ -127,12 +136,14 @@ def users(request):
         target = change_role(actor=request.user, restaurant_id=m.restaurant_id, user_id=data['id'], role=data['role'])
         return Response({'id': target.user_id, 'email': target.user.email, 'role': target.role})
     if request.method == 'GET':
-        return Response([{'id': x.user_id, 'email': x.user.email, 'role': x.role, 'is_initial_owner': x.user_id == m.restaurant.initial_owner_id, 'is_last_owner': x.role == 'OWNER' and not active_owners(m.restaurant).exclude(pk=x.pk).exists()} for x in Membership.objects.filter(restaurant=m.restaurant).select_related('user')])
+        return Response([{'id': x.user_id, 'email': x.user.email, 'role': x.role, 'is_active': x.user.is_active, 'is_initial_owner': x.user_id == m.restaurant.initial_owner_id, 'is_last_owner': x.role == 'OWNER' and not active_owners(m.restaurant).exclude(pk=x.pk).exists()} for x in Membership.objects.filter(restaurant=m.restaurant).select_related('user')])
     serializer = UserInput(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
     try:
         with transaction.atomic():
+            Restaurant.objects.filter(pk=m.restaurant_id).update(is_active=F('is_active'))
+            m = manager(request)
             user = User.objects.create_user(username=data['email'], email=data['email'], password=data['password'])
             Membership.objects.create(user=user, restaurant=m.restaurant, role=data['role'])
             AuditLog.objects.create(restaurant=m.restaurant, actor=request.user, action='user.created', entity_id=str(user.pk), after={'email': user.email, 'role': data['role']})
@@ -170,7 +181,7 @@ def restaurants(request):
         return Response([{
             'id': restaurant.pk, 'name': restaurant.name, 'is_active': restaurant.is_active,
             'owners': [{'id': m.user_id, 'email': m.user.email} for m in restaurant.membership_set.all() if m.role == 'OWNER' and m.is_active and m.user.is_active and not m.user.is_superuser],
-            'initial_owner': next(({'email': m.user.email, 'role': m.role} for m in restaurant.membership_set.all() if m.user_id == restaurant.initial_owner_id), None),
+            'initial_owner': next(({'email': m.user.email, 'role': m.role, 'is_active': m.user.is_active} for m in restaurant.membership_set.all() if m.user_id == restaurant.initial_owner_id), None),
         } for restaurant in Restaurant.objects.order_by('name').prefetch_related('membership_set__user')])
     if request.method == 'PATCH':
         class Update(serializers.Serializer):
@@ -228,3 +239,26 @@ def initial_owner_role(request):
     target = change_role(actor=request.user, restaurant_id=serializer.validated_data['restaurant'],
                          user_id=None, role=serializer.validated_data['role'], platform=True)
     return Response({'role': target.role})
+
+
+@api_view(['PATCH'])
+def user_status(request, user_id=None):
+    platform = user_id is None
+    if platform and not request.user.is_superuser:
+        raise PermissionDenied('Esta operación requiere un administrador global.')
+    membership = None if platform else manager(request)
+    class StatusUpdate(serializers.Serializer):
+        is_active = serializers.BooleanField()
+        restaurant = serializers.UUIDField(required=platform)
+
+        def validate(self, data):
+            allowed = {'is_active', 'restaurant'} if platform else {'is_active'}
+            if set(self.initial_data) - allowed:
+                raise serializers.ValidationError('Solo puedes modificar el estado en esta operación.')
+            return data
+    serializer = StatusUpdate(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+    return Response(change_user_status(actor=request.user,
+                    restaurant_id=data['restaurant'] if platform else membership.restaurant_id,
+                    user_id=user_id, is_active=data['is_active'], platform=platform))
