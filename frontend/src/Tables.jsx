@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from './identityApi.js'
 
+// RF-014: the backend independently enforces this fixed product limit.
+const maxTablesPerZone = 100
+
 // RF-013: configuration only; operational labels and states belong to later DNs.
 export default function Tables({ refreshKey, onAccessError }) {
   const [zones, setZones] = useState(null)
@@ -19,6 +22,7 @@ export default function Tables({ refreshKey, onAccessError }) {
   const zoneId = zone?.id || ''
   const requestKey = `${zoneId}-${refreshKey}-${version}`
   const tables = result?.key === requestKey ? result.rows : null
+  const atLimit = tables && tables.length >= maxTablesPerZone
   const listError = result?.key === requestKey ? result.error : ''
   useEffect(() => {
     let cancelled = false
@@ -37,7 +41,7 @@ export default function Tables({ refreshKey, onAccessError }) {
   }, [zoneId, requestKey])
   async function create(event) {
     event.preventDefault()
-    if (submitting.current || !zone?.is_active) return
+    if (submitting.current || !zone?.is_active || atLimit) return
     submitting.current = true
     setBusy(true); setError(''); setMessage('')
     try {
@@ -48,17 +52,20 @@ export default function Tables({ refreshKey, onAccessError }) {
     } catch (problem) {
       if (mounted.current) {
         setError(problem.message)
+        // RF-014: another session may have filled the last slot; reload the count.
+        if (problem.status === 400) setVersion(value => value + 1)
         if ([401, 403].includes(problem.status)) accessError.current(problem)
       }
     } finally { submitting.current = false; if (mounted.current) setBusy(false) }
   }
   return <section className="identity-card identity-directory">
-    <div className="identity-directory-heading"><div><p className="identity-eyebrow">CONFIGURACIÓN POR ZONA</p><h2>Mesas del restaurante</h2></div>{tables && <span className="identity-count">{tables.length} {tables.length === 1 ? 'mesa' : 'mesas'}</span>}</div>
+    <div className="identity-directory-heading"><div><p className="identity-eyebrow">CONFIGURACIÓN POR ZONA</p><h2>Mesas del restaurante</h2></div>{tables && <span className="identity-count">{tables.length} / {maxTablesPerZone} mesas</span>}</div>
     <p className="identity-hint">Selecciona una zona para consultar sus mesas o crear una nueva.</p>
     {(error || listError) && <div role="alert"><p className="identity-message">{error || listError}</p><button className="identity-secondary" onClick={() => setVersion(value => value + 1)}>Reintentar consulta</button></div>}
     {message && <p className="identity-message" role="status">{message}</p>}
     {!zones ? !error && <p className="identity-hint" role="status">Cargando zonas…</p> : !zones.length ? <div className="identity-empty"><p>Primero crea una zona para ubicar las mesas de tu restaurante.</p><a className="identity-secondary" href="#zones">Ir a Zonas</a></div> : <>
-      <form className="identity-form table-create-form" onSubmit={create}><fieldset disabled={busy}><label>Zona de las mesas<select value={zoneId} onChange={event => { setSelection(event.target.value); setMessage(''); setError('') }}>{zones.map(item => <option value={item.id} key={item.id}>{item.name}{item.is_active ? '' : ' · Inactiva'}</option>)}</select></label><button className="identity-primary" disabled={!zone?.is_active || !tables} type="submit">{busy ? 'Creando mesa…' : 'Crear mesa en esta zona →'}</button></fieldset></form>
+      <form className="identity-form table-create-form" onSubmit={create}><fieldset disabled={busy}><label>Zona de las mesas<select value={zoneId} onChange={event => { setSelection(event.target.value); setMessage(''); setError('') }}>{zones.map(item => <option value={item.id} key={item.id}>{item.name}{item.is_active ? '' : ' · Inactiva'}</option>)}</select></label><button className="identity-primary" disabled={!zone?.is_active || !tables || atLimit} aria-describedby={atLimit ? 'table-limit-message' : undefined} type="submit">{busy ? 'Creando mesa…' : atLimit ? 'Límite de mesas alcanzado' : 'Crear mesa en esta zona →'}</button></fieldset></form>
+      {atLimit && <p className="identity-message" id="table-limit-message" role="status">Esta zona alcanzó el máximo de {maxTablesPerZone} mesas. Selecciona otra zona para crear una nueva mesa.</p>}
       {!zone?.is_active && <p className="identity-message">Esta zona está inactiva. Sus mesas se conservan; actívala desde <a href="#zones">Zonas</a> antes de crear otras.</p>}
       <h3 className="table-zone-heading">{zone?.name}</h3>
       {!tables ? !listError && <p className="identity-hint" role="status">Cargando mesas…</p> : !tables.length ? <p className="identity-empty">Esta zona todavía no tiene mesas.</p> : <ul className="table-registration-list">{tables.map(table => <li key={table.id}><span className="table-registration-icon" aria-hidden="true">▦</span><div><h4>Mesa registrada</h4><p>Zona: {table.zone_name}</p><p>Creada el <time dateTime={table.created_at}>{new Date(table.created_at).toLocaleString('es-CO', { timeZone: 'America/Bogota' })}</time></p></div></li>)}</ul>}

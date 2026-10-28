@@ -1,6 +1,6 @@
 # Mesas por zona — DN-29 / RF-013
 
-Plan y CA aprobados por el usuario en el chat el 2026-10-28. Implementación limitada al alta y consulta de mesas asociadas a zonas. DN-30 (cantidad configurable), DN-31 (identificación visible configurable), DN-32 (identificadores duplicados) y estados operativos siguen pendientes; no se dan por implementados.
+Plan y CA de DN-29 aprobados por el usuario en el chat el 2026-10-28: alta y consulta de mesas asociadas a zonas. DN-30 / RF-014 se incorpora con el alcance aprobado más abajo. DN-31 (identificación visible configurable), DN-32 (identificadores duplicados) y estados operativos siguen pendientes; no se dan por implementados.
 
 ## Criterios aprobados
 
@@ -46,3 +46,16 @@ Aplicación/reversión/reaplicación verificadas en una base QA temporal con una
 - Django check, consistencia de migraciones, lint y build correctos. Frontend JavaScript sin script `typecheck`.
 - Navegador en QA aislado (`5174`/`8001`): alta real, consulta por zona, zona inactiva bloqueada, persistencia al recargar, filtro Mesas · Creación, restaurante B sin las mesas de A y acceso directo de Mesero sin gestión. Diseño revisado en escritorio y viewport móvil de 390 px, sin desbordamiento horizontal.
 - La validación funcional inicial se realizó sin modificar datos reales ni estados de Jira. Migración local aplicada posteriormente con autorización. Pendiente: validación final del usuario; no cerrar Jira automáticamente.
+
+## Cantidad por zona — DN-30 / RF-014
+
+Plan y alcance aprobados por el usuario el 2026-10-28: mantener altas individuales y permitir entre 0 y 100 mesas por zona. No se incorpora un formulario para reducir el total ni se decide automáticamente qué mesas retirar. No se añaden estados ni desactivación individual de mesas; todas las mesas actualmente registradas cuentan para el límite. Si posteriormente se incorpora desactivación individual, su interacción con la cantidad de mesas activas deberá definirse y probarse en ese alcance.
+
+- La zona vacía es válida. Se permite el alta número 100; la siguiente devuelve 400 con explicación en español, sin cambiar mesas ni generar auditorías de altas fallidas.
+- `MAX_TABLES_PER_ZONE = 100` expresa el límite fijo de RF-014, común a todos los restaurantes; no constituye un umbral configurable por tenant.
+- El servidor cuenta únicamente mesas de la zona autorizada dentro de la misma transacción y bloqueo de restaurante usados para crear/auditar. Las altas simultáneas no pueden ocupar dos veces el último cupo. La contención temporal SQLite devuelve 409 para reintentar, incluyendo contención durante la consulta inicial de autorización dentro de la vista.
+- El tope se aplica por zona. Tener 100 mesas en Salón no bloquea crear en Terraza ni afecta otro restaurante. Las consultas y mutaciones con IDs ajenos mantienen el rechazo 404.
+- La interfaz muestra `cantidad / 100 mesas`, deshabilita el alta al alcanzar el límite y explica cómo continuar en otra zona. Ante rechazo 400 recarga zonas y mesas para actualizar la capacidad si otra sesión ocupó el último cupo. El bloqueo visual complementa la validación independiente en servidor.
+- No requiere migraciones, dependencias ni cambios en datos existentes. Si hubiera zonas preexistentes por encima del límite, se conservan y se impiden nuevas altas; no hay recorte automático de registros.
+
+Verificación de DN-30: 75 pruebas Django correctas (tres nuevas para límites, independencia/aislamiento y concurrencia real con dos conexiones), Django check y consistencia de migraciones, lint/build correctos; frontend JavaScript sin typecheck disponible. Navegador QA aislado con 99 registros: creación número 100, bloqueo/explicación, rechazo y actualización desde una segunda sesión desactualizada, zona diferente con `0 / 100` y alta habilitada. Vista móvil de 390 px sin desbordamiento horizontal. Datos QA ficticios; no se crearon mesas reales ni se modificó el estado de Jira. Validación final del usuario pendiente.
