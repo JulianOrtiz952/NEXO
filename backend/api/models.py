@@ -52,6 +52,30 @@ class Zone(models.Model):
         constraints = [models.UniqueConstraint(fields=['restaurant', 'name_key'], name='zone_restaurant_name_unique')]
 
 
+class Category(models.Model):
+    # RF-023: categories and their comparison keys belong to one restaurant.
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.PROTECT)
+    name = models.CharField(max_length=100)
+    name_key = models.CharField(max_length=300, editable=False)
+    is_active = models.BooleanField(default=True)
+    position = models.PositiveIntegerField()
+
+    class Meta:
+        ordering = ['position', 'pk']
+        constraints = [
+            models.UniqueConstraint(fields=['restaurant', 'name_key'], name='category_restaurant_name_unique'),
+            models.CheckConstraint(condition=~models.Q(name_key=''), name='category_name_key_not_empty'),
+        ]
+
+    def save(self, *args, **kwargs):
+        self.name = self.name.strip()
+        self.name_key = self.name.casefold()
+        if kwargs.get('update_fields') is not None:
+            kwargs['update_fields'] = set(kwargs['update_fields']) | {'name', 'name_key'}
+        return super().save(*args, **kwargs)
+
+
 class Table(models.Model):
     # RF-013: restaurant ownership follows the protected zone relation.
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

@@ -8,6 +8,10 @@ from .models import AuditLog
 
 # RF-012, RNF-007: register each supported action with its category and type.
 ACTION_TYPES = {
+    'category.created': ('Categorías', 'Creación'),
+    'category.updated': ('Categorías', 'Edición'),
+    'category.status_changed': ('Categorías', 'Cambio de estado'),
+    'category.reordered': ('Categorías', 'Cambio de orden'),
     'user.created': ('Usuarios', 'Creación'),
     'user.email_changed': ('Usuarios', 'Edición'),
     'user.role_changed': ('Usuarios', 'Cambio de rol'),
@@ -47,7 +51,7 @@ def history(request):
     paginator = PageNumberPagination()
     paginator.page_size = 20
     page = paginator.paginate_queryset(rows.order_by('-created_at', '-pk'), request)
-    visible_keys = {'email', 'role', 'is_active', 'name', 'owner', 'cascading', 'zone_name'}
+    visible_keys = {'email', 'role', 'is_active', 'name', 'owner', 'cascading', 'zone_name', 'position'}
     results = []
     for event in page:
         target = event.after.get('email') or event.before.get('email')
@@ -57,6 +61,8 @@ def history(request):
                 target = target or candidates.filter(pk=int(event.entity_id)).values_list('email', flat=True).first()
         if event.action in ['restaurant.created', 'restaurant.status_changed']:
             target = event.restaurant.name if event.restaurant else 'Restaurante'
+        if event.action.startswith('category.'):
+            target = event.after.get('name') or event.before.get('name') or 'Categoría'
         if event.action.startswith('zone.'):
             target = event.after.get('name') or event.before.get('name') or 'Zona'
         if event.action.startswith('table.'):

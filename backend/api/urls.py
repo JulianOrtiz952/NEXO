@@ -3,6 +3,7 @@ from .views import health, menu
 from . import identity
 from .history import history
 from .zones import zones
+from .categories import categories, reorder_categories
 from .tables import zone_tables, table_details
 
 urlpatterns = [path('menu/', menu, name='menu'), path('health/', health, name='health')]
@@ -15,6 +16,9 @@ urlpatterns += [
     path('users/<int:user_id>/status/', identity.user_status),
     path('history/', history),
     path('zones/', zones),
+    path('categories/', categories),
+    path('categories/reorder/', reorder_categories),
+    path('categories/<uuid:category_id>/', categories),
     path('zones/<uuid:zone_id>/', zones),
     path('zones/<uuid:zone_id>/tables/', zone_tables),
     path('tables/<uuid:table_id>/', table_details),
