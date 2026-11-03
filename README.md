@@ -1,58 +1,32 @@
-# NEXO · Gestión de restaurantes
+# NEXO | Restaurant Management
 
-Proyecto local con backend Django/DRF, SQLite y frontend React con Vite.
+Personal project in development. NEXO brings restaurant administration into one application, with separate areas for platform administration and restaurant operations.
 
-## Iniciar en Windows (PowerShell)
+## Implemented scope
 
-Abre dos terminales desde la carpeta del proyecto. Las dependencias ya están instaladas.
+- Sign-in, sign-out and session identity through API authentication.
+- Restaurant and user administration with memberships and ownership rules.
+- Zone and table management, including capacity and name validation.
+- Audit history and a menu API.
 
-Backend:
+The code is organized into a React/Vite frontend and a Python/Django REST Framework backend. Local development uses SQLite. The API routes are in [backend/api/urls.py](backend/api/urls.py) and its tests cover identity, ownership, audit history, zones and tables. Inventory and payment workflows remain planned scope.
 
-```powershell
-cd backend
-.\.venv\Scripts\python.exe manage.py runserver
-```
+## Run locally
 
-Frontend:
-
-```powershell
-cd frontend
-npm run dev
-```
-
-Abre http://localhost:5173 para ver la bienvenida. El panel de demostración está en http://localhost:5173/example. NEXO incluye un resumen de gestión, un plano de mesas interactivo, un tablero de cocina y una carta con búsqueda y filtros. El diseño usa tonos crema y dorado con navegación lateral oscura.
-
-Los ocho productos y sus precios se consultan desde `GET /api/menu/` (datos en `backend/api/menu.json`). Las métricas, mesas y pedidos son de demostración. Los pedidos creados en el plano pasan al tablero de cocina y permiten avanzar su estado durante la sesión; no se guardan en el servidor. Las imágenes de platos son ilustrativas y se sirven desde Unsplash; las fuentes usan Google Fonts. `GET /api/health/` sigue disponible para comprobar el backend.
-
-La pantalla `/login` (también `/login.html`) valida los campos y permite mostrar u ocultar la contraseña. Es una vista previa: autenticación, registro, recuperación de contraseña y reservas aún no están implementados. No envía credenciales.
-
-Vite reenvía `/api` a `http://127.0.0.1:8000` mediante su proxy de desarrollo. Django también permite CORS desde localhost y 127.0.0.1 en el puerto 5173. Puedes copiar `frontend/.env.example` a `frontend/.env.local` y definir `VITE_API_URL` para consultar otra dirección; reinicia Vite tras cambiarla.
-
-## Instalar desde cero
-
-Requiere Python 3.12+ y Node.js 22.12+.
+Use Python 3.12+ and Node.js 22.12+. Run the following from the repository root in PowerShell.
 
 ```powershell
 python -m venv backend/.venv
-python -m pip --python backend/.venv/Scripts/python.exe install -r backend/requirements.txt
+backend/.venv/Scripts/python.exe -m pip install -r backend/requirements.txt
 backend/.venv/Scripts/python.exe backend/manage.py migrate
-cd frontend
-npm ci
+backend/.venv/Scripts/python.exe backend/manage.py runserver
 ```
 
-Si la creación del entorno falla en `ensurepip`, pero existe `backend/.venv/Scripts/python.exe`, el comando de instalación con `python -m pip --python ...` permite instalar usando el pip global.
+In a second terminal run `npm ci --prefix frontend` and `npm run dev --prefix frontend`. Open the URL printed by Vite.
 
-## Verificar
+## Checks
 
-```powershell
-cd backend
-.\.venv\Scripts\python.exe manage.py test api
-```
+Run `backend/.venv/Scripts/python.exe backend/manage.py test api`, `npm run lint --prefix frontend` and `npm run build --prefix frontend`.
 
-Desde `frontend`, ejecuta `npm run build` y `npm run lint`.
+See the [domain rules](DOMAIN_RULES.md) and [data model](DATA_MODEL.md) for design context.
 
-El endpoint está en `backend/api/views.py`; la página está en `frontend/src/App.jsx`.
-
-Configuración orientada a desarrollo local. Para producción, configura una clave secreta externa, `DEBUG=False`, hosts y orígenes permitidos, y un servidor que enrute `/api` al backend: el proxy de Vite no forma parte del build.
-
-La clave de Django se lee de `DJANGO_SECRET_KEY`. Si no está definida, se genera una clave temporal por proceso para desarrollo. Define una clave estable en el entorno para conservar sesiones entre reinicios y para producción.
