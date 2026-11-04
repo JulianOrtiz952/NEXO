@@ -238,3 +238,7 @@
 - [ ] Cambios de receta, exclusiones y modificaciones una vez enviado.
 - [ ] Conciliación de inventario final (RF-243–245).
 - [ ] Clasificación de RF nuevos sin etiqueta de versión y detalle de remuneraciones.
+
+### Validación incremental Sprint 02 — DN-36 / RF-020
+- [x] Configuración de métodos de pago: Dueño/Administrador crean, editan, activan y desactivan registros del propio restaurante, sin borrado, con auditoría atómica. Cuatro pruebas dedicadas correctas; navegador QA con ciclo completo y recarga. Migración 0010 reversible validada en base temporal.
+- [ ] Revisar/aplicar 0010 a la base local y validar con el usuario. CA-02 sobre ventas históricas pendiente del Sprint 07; no se simulan ventas ni se cierra Jira.

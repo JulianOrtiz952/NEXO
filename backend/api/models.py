@@ -109,3 +109,11 @@ class Product(models.Model):
 
     class Meta:
         constraints = [models.CheckConstraint(condition=models.Q(price__gte=0), name='product_price_nonnegative')]
+
+
+class PaymentMethod(models.Model):
+    # RF-020: configuration belongs exclusively to the authorized restaurant.
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.PROTECT)
+    name = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)

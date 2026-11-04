@@ -8,6 +8,9 @@ from .models import AuditLog
 
 # RF-012, RNF-007: register each supported action with its category and type.
 ACTION_TYPES = {
+    'payment_method.created': ('Métodos de pago', 'Creación'),
+    'payment_method.updated': ('Métodos de pago', 'Edición'),
+    'payment_method.status_changed': ('Métodos de pago', 'Cambio de estado'),
     'product.created': ('Productos', 'Creación'),
     'category.created': ('Categorías', 'Creación'),
     'category.updated': ('Categorías', 'Edición'),
@@ -64,6 +67,8 @@ def history(request):
             target = event.restaurant.name if event.restaurant else 'Restaurante'
         if event.action.startswith('product.'):
             target = event.after.get('name') or 'Producto'
+        if event.action.startswith('payment_method.'):
+            target = event.after.get('name') or event.before.get('name') or 'Método de pago'
         if event.action.startswith('category.'):
             target = event.after.get('name') or event.before.get('name') or 'Categoría'
         if event.action.startswith('zone.'):
