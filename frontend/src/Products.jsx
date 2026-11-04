@@ -2,19 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from './identityApi.js'
 
 import AmountInput from './AmountInput.jsx'
+import RecordActions from './RecordActions.jsx'
 import { formatMoney, formatQuantity, parseAmount } from './numberFormat.js'
 import { groupMenuProducts } from './menuGroups.js'
-
-// RF-025/026/027/028, RNF-031: decorative icons keep an explicit accessible action name.
-function ProductActionIcon({ type }) {
-  const paths = {
-    status: 'M12 3v9 M6.3 5.7a8 8 0 1 0 11.4 0',
-    price: 'M3 3h7l11 11-7 7L3 10V3Z M7.5 7.5h.01',
-    edit: 'm15 5 4 4 M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15v5Z',
-    description: 'M7 3h8l4 4v14H5V3h2Z M14 3v5h5 M8 12h8 M8 16h6',
-  }
-  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d={paths[type]} /></svg>
-}
 
 export default function Products({ manage }) {
   const [data, setData] = useState(null)
@@ -149,12 +139,12 @@ export default function Products({ manage }) {
           <div className="identity-row-heading"><div><h3>{row.name}</h3><p>{row.category_name} · {formatMoney(row.price)}</p></div>
             {manage && <span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span>}</div>
           {row.description && <p className="product-description">{row.description}</p>}
-          {manage && <div className="product-actions" role="group" aria-label={`Acciones de ${row.name}`}>
-            <button type="button" className="product-action product-action-status" disabled={saving} aria-label={`${row.is_active ? 'Desactivar' : 'Activar'} producto ${row.name}`} onClick={event => { statusTrigger.current = event.currentTarget; setPendingStatus(row) }}><ProductActionIcon type="status" /><span className="product-action-hint" aria-hidden="true">{row.is_active ? 'Desactivar' : 'Activar'} producto</span></button>
-            <button type="button" className="product-action" disabled={saving} aria-label={`Cambiar precio de ${row.name}`} aria-expanded={editing === `${row.id}:price`} onClick={() => { setEditing(current => current === `${row.id}:price` ? null : `${row.id}:price`); setNotice('') }}><ProductActionIcon type="price" /><span className="product-action-hint" aria-hidden="true">Cambiar precio</span></button>
-            <button type="button" className="product-action" disabled={saving} aria-label={`Editar producto ${row.name}`} aria-expanded={editing === `${row.id}:details`} onClick={() => { setEditing(current => current === `${row.id}:details` ? null : `${row.id}:details`); setNotice('') }}><ProductActionIcon type="edit" /><span className="product-action-hint" aria-hidden="true">Editar producto</span></button>
-            <button type="button" className="product-action" disabled={saving} aria-label={`Editar descripción de ${row.name}`} aria-expanded={editing === row.id} onClick={() => { setEditing(current => current === row.id ? null : row.id); setDescription(row.description); setNotice('') }}><ProductActionIcon type="description" /><span className="product-action-hint" aria-hidden="true">Editar descripción</span></button>
-          </div>}
+          {manage && <RecordActions label={`Acciones de ${row.name}`} actions={[
+            { id: 'status', icon: 'status', label: `${row.is_active ? 'Desactivar' : 'Activar'} producto ${row.name}`, hint: `${row.is_active ? 'Desactivar' : 'Activar'} producto`, disabled: saving, onClick: event => { statusTrigger.current = event.currentTarget; setPendingStatus(row) } },
+            { id: 'price', icon: 'price', label: `Cambiar precio de ${row.name}`, hint: 'Cambiar precio', disabled: saving, expanded: editing === `${row.id}:price`, onClick: () => { setEditing(current => current === `${row.id}:price` ? null : `${row.id}:price`); setNotice('') } },
+            { id: 'edit', icon: 'edit', label: `Editar producto ${row.name}`, hint: 'Editar producto', disabled: saving, expanded: editing === `${row.id}:details`, onClick: () => { setEditing(current => current === `${row.id}:details` ? null : `${row.id}:details`); setNotice('') } },
+            { id: 'description', icon: 'description', label: `Editar descripción de ${row.name}`, hint: 'Editar descripción', disabled: saving, expanded: editing === row.id, onClick: () => { setEditing(current => current === row.id ? null : row.id); setDescription(row.description); setNotice('') } },
+          ]} />}
           {manage && (editing === `${row.id}:price` ? <form className="identity-form product-description-form" onSubmit={event => saveProduct(event, row, 'price')}>
             <fieldset disabled={saving}>
               <label>Nuevo precio de {row.name}<AmountInput name="price" labelId={`price-hint-${row.id}`} defaultValue={row.price} /></label>

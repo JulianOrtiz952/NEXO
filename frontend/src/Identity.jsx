@@ -9,6 +9,7 @@ import PaymentMethods from './PaymentMethods.jsx'
 import OperationReasons from './OperationReasons.jsx'
 import Products from './Products.jsx'
 import Tables from './Tables.jsx'
+import RecordActions from './RecordActions.jsx'
 const labels = { users: 'Usuarios', tables: 'Mesas', kitchen: 'Cocina', menu: 'Carta', cashier: 'Caja', restaurants: 'Restaurantes' }
 const roles = { OWNER: 'Dueño', ADMIN: 'Administrador', CASHIER: 'Caja', WAITER: 'Mesero', KITCHEN: 'Cocina' }
 
@@ -22,6 +23,15 @@ export default function Identity() {
   const [emailDrafts, setEmailDrafts] = useState({})
   const [historyVersion, setHistoryVersion] = useState(0)
   const [pendingStatus, setPendingStatus] = useState(null)
+  const [restaurantEditor, setRestaurantEditor] = useState(null)
+  const restaurantAction = useRef(null)
+  const statusAction = useRef(null)
+  function closeRestaurantEditor() { setRestaurantEditor(null); restaurantAction.current?.focus() }
+  function openRestaurantEditor(event, row, kind) {
+    restaurantAction.current = event.currentTarget
+    setRestaurantEditor(current => current?.id === row.id && current.kind === kind ? null : { id: row.id, kind })
+  }
+  function closeStatus() { setPendingStatus(null); statusAction.current?.focus() }
   const revision = useRef(0)
   function clearAccess(error) {
     revision.current += 1
@@ -30,6 +40,7 @@ export default function Identity() {
     setOwners([])
     setEmailDrafts({})
     setPendingStatus(null)
+    setRestaurantEditor(null)
     setMessage(error.message)
     if (error.status === 401 || error.status === 403) sessionStorage.removeItem('nexo-token')
   }
@@ -106,7 +117,7 @@ export default function Identity() {
     setBusy(true); setMessage('')
     try {
       await api('platform/restaurants/', { method: 'PATCH', body: JSON.stringify(payload) })
-      if (await refresh()) setMessage('Restaurante actualizado.')
+      if (await refresh()) { closeRestaurantEditor(); setMessage('Restaurante actualizado.') }
     } catch (error) { await handleError(error) }
     finally { setBusy(false) }
   }
@@ -126,7 +137,7 @@ export default function Identity() {
     setBusy(true); setMessage('')
     try {
       await api('platform/initial-owner-role/', { method: 'PATCH', body: JSON.stringify({ restaurant, role }) })
-      if (await refresh()) setMessage('Rol del primer Dueño actualizado. El restaurante conserva un Dueño activo.')
+      if (await refresh()) { closeRestaurantEditor(); setMessage('Rol del primer Dueño actualizado. El restaurante conserva un Dueño activo.') }
     } catch (error) { await handleError(error) }
     finally { setBusy(false) }
   }
@@ -142,7 +153,7 @@ export default function Identity() {
     finally { setBusy(false) }
   }
   async function updateStatus(target, active, platformStatus = false) {
-    setPendingStatus(null)
+    closeStatus()
     setBusy(true); setMessage('')
     try {
       const path = platformStatus ? 'platform/initial-owner-status/' : `users/${target.id}/status/`
@@ -192,15 +203,23 @@ export default function Identity() {
         {((platform && activeSection === 'restaurants') || (canManage && activeSection === 'accounts')) && <section className="identity-card identity-directory" id={platform ? 'restaurants' : 'team'}><div className="identity-directory-heading"><div><p className="identity-eyebrow">{platform ? 'ESPACIOS CONECTADOS' : 'EQUIPO DEL RESTAURANTE'}</p><h2>{platform ? 'Restaurantes' : 'Usuarios y roles'}</h2></div><span className="identity-count">{formatQuantity(rows.length)} registros</span></div>
           {!rows.length ? <p className="identity-empty">{platform ? 'Tu primer restaurante empieza arriba. Crea una cuenta y vincula su espacio.' : 'Todavía no hay usuarios para mostrar.'}</p> : <ul className="identity-list">{rows.map(row => <li key={row.id}>{platform ? <>
             <div className="identity-row-heading"><div><h3>{row.name}</h3><p>{row.owners.map(owner => owner.email).join(', ') || 'Sin Dueño activo'}</p></div><span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span></div>
-            <form className="identity-update" onSubmit={event => updateRestaurant(event, row.id)}><fieldset disabled={busy}><label>Estado<select name="is_active" defaultValue={String(row.is_active)} key={String(row.is_active)}><option value="true">Activo</option><option value="false">Inactivo</option></select></label><label>Vincular otro Dueño<select name="owner" defaultValue=""><option value="">Conservar asignación actual</option>{owners.map(owner => <option key={owner.id} value={owner.id}>{owner.email}</option>)}</select></label><button className="identity-secondary" type="submit">Guardar cambios</button></fieldset></form>
-            {row.initial_owner && <div className="identity-status-control"><span className={`identity-badge ${row.initial_owner.is_active ? '' : 'identity-inactive'}`}>{row.initial_owner.is_active ? 'Dueño activo' : 'Dueño inactivo · acceso suspendido'}</span><button className="identity-secondary" disabled={busy} onClick={() => setPendingStatus({ target: row, active: !row.initial_owner.is_active, platformStatus: true })}>{row.initial_owner.is_active ? 'Suspender Dueño y acceso del restaurante' : 'Reactivar Dueño y acceso del restaurante'}</button></div>}
-            {row.initial_owner && <form className="identity-update identity-role-update" aria-label={`Rol del primer Dueño de ${row.name}`} onSubmit={event => updateInitialOwnerRole(event, row.id)}>
-              <p className="identity-hint">Primer Dueño: {row.initial_owner.email}. Solo el administrador global puede cambiar su rol. Debe quedar otro Dueño activo.</p>
-              <fieldset disabled={busy || (row.initial_owner.role === 'OWNER' && row.owners.length < 2)}><label>Rol del primer Dueño<select name="role" defaultValue={row.initial_owner.role} key={row.initial_owner.role}>{Object.entries(roles).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button className="identity-secondary" type="submit">Guardar rol del primer Dueño</button></fieldset>
+            {row.initial_owner && <><p className="identity-hint">Primer Dueño: {row.initial_owner.email}</p><span className={`identity-badge ${row.initial_owner.is_active ? '' : 'identity-inactive'}`}>{row.initial_owner.is_active ? 'Dueño activo' : 'Dueño inactivo · acceso suspendido'}</span></>}
+            {row.initial_owner ? <RecordActions label={`Acciones del restaurante ${row.name}`} actions={[
+              { id: 'status', icon: 'status', label: `Cambiar estado de ${row.name}`, hint: 'Estado del restaurante', disabled: busy, expanded: restaurantEditor?.id === row.id && restaurantEditor.kind === 'status', onClick: event => openRestaurantEditor(event, row, 'status') },
+              { id: 'owner', icon: 'link', label: `Vincular Dueño a ${row.name}`, hint: 'Vincular otro Dueño', disabled: busy, expanded: restaurantEditor?.id === row.id && restaurantEditor.kind === 'owner', onClick: event => openRestaurantEditor(event, row, 'owner') },
+              { id: 'access', icon: 'access', label: `${row.initial_owner.is_active ? 'Suspender' : 'Reactivar'} Dueño y acceso de ${row.name}`, hint: row.initial_owner.is_active ? 'Suspender acceso' : 'Reactivar acceso', disabled: busy, onClick: event => { statusAction.current = event.currentTarget; setPendingStatus({ target: row, active: !row.initial_owner.is_active, platformStatus: true }) } },
+              { id: 'role', icon: 'role', label: `Cambiar rol del primer Dueño de ${row.name}`, hint: 'Rol del primer Dueño', disabled: busy || (row.initial_owner.role === 'OWNER' && row.owners.length < 2), expanded: restaurantEditor?.id === row.id && restaurantEditor.kind === 'role', onClick: event => openRestaurantEditor(event, row, 'role') },
+            ]} /> : <div className="identity-status-control"><button className="identity-secondary" disabled={busy} onClick={event => openRestaurantEditor(event, row, 'status')}>Cambiar estado</button><button className="identity-secondary" disabled={busy} onClick={event => openRestaurantEditor(event, row, 'owner')}>Vincular Dueño</button></div>}
+            {row.initial_owner?.role === 'OWNER' && row.owners.length < 2 && <p className="identity-hint">Para cambiar el rol del primer Dueño debe quedar otro Dueño activo.</p>}
+            {restaurantEditor?.id === row.id && restaurantEditor.kind === 'status' && <form className="identity-update identity-role-update record-editor" aria-label={`Estado de ${row.name}`} onSubmit={event => updateRestaurant(event, row.id)}><fieldset disabled={busy}><label>Estado de {row.name}<select autoFocus name="is_active" defaultValue={String(row.is_active)} key={String(row.is_active)}><option value="true">Activo</option><option value="false">Inactivo</option></select></label><button className="identity-secondary" type="submit">Guardar estado</button><button className="identity-secondary" type="button" onClick={closeRestaurantEditor}>Cancelar edición</button></fieldset></form>}
+            {restaurantEditor?.id === row.id && restaurantEditor.kind === 'owner' && <form className="identity-update identity-role-update record-editor" aria-label={`Vincular Dueño a ${row.name}`} onSubmit={event => updateRestaurant(event, row.id)}><fieldset disabled={busy}><input type="hidden" name="is_active" value={String(row.is_active)} /><label>Vincular otro Dueño a {row.name}<select autoFocus name="owner" required defaultValue=""><option value="" disabled>Selecciona un correo</option>{owners.map(owner => <option key={owner.id} value={owner.id}>{owner.email}</option>)}</select></label>{!owners.length && <small>No hay cuentas de Dueño disponibles. Crea una cuenta primero.</small>}<button className="identity-secondary" type="submit" disabled={!owners.length}>Guardar vinculación</button><button className="identity-secondary" type="button" onClick={closeRestaurantEditor}>Cancelar edición</button></fieldset></form>}
+            {row.initial_owner && restaurantEditor?.id === row.id && restaurantEditor.kind === 'role' && <form className="identity-update identity-role-update record-editor" aria-label={`Rol del primer Dueño de ${row.name}`} onSubmit={event => updateInitialOwnerRole(event, row.id)}>
+              <p className="identity-hint">Solo el administrador global puede cambiar su rol. Debe quedar otro Dueño activo.</p>
+              <fieldset disabled={busy || (row.initial_owner.role === 'OWNER' && row.owners.length < 2)}><label>Rol del primer Dueño de {row.name}<select autoFocus name="role" defaultValue={row.initial_owner.role} key={row.initial_owner.role}>{Object.entries(roles).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select></label><button className="identity-secondary" type="submit">Guardar rol del primer Dueño</button><button className="identity-secondary" type="button" onClick={closeRestaurantEditor}>Cancelar edición</button></fieldset>
             </form>}
           </> : <>
             <div className="identity-row-heading"><div className="identity-person"><span className="identity-avatar">{row.email.slice(0, 1).toUpperCase()}</span><div><h3>{row.email}</h3><p>Miembro de {user.restaurant.name}</p></div></div><span className="identity-badge">{roles[row.role]}</span></div>
-            <div className="identity-status-control"><span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span><button className="identity-secondary" disabled={busy || row.is_initial_owner || (row.is_active && row.role === 'OWNER' && row.is_last_owner)} onClick={() => setPendingStatus({ target: row, active: !row.is_active, platformStatus: false })}>{row.is_active ? 'Desactivar usuario' : 'Activar usuario'}</button></div>
+            <div className="identity-status-control"><span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span><button className="identity-secondary" disabled={busy || row.is_initial_owner || (row.is_active && row.role === 'OWNER' && row.is_last_owner)} onClick={event => { statusAction.current = event.currentTarget; setPendingStatus({ target: row, active: !row.is_active, platformStatus: false }) }}>{row.is_active ? 'Desactivar usuario' : 'Activar usuario'}</button></div>
             {row.is_initial_owner && <p className="identity-hint">El estado del primer Dueño solo lo puede cambiar el administrador global.</p>}
             <form className="identity-update identity-role-update" aria-label={`Editar correo de ${row.email}`} onSubmit={event => updateEmail(event, row.id)}>
               <fieldset disabled={busy}><label>Correo de {row.email}<input name="email" type="email" required maxLength={150} autoComplete="off" value={emailDrafts[row.id] ?? row.email} onChange={event => setEmailDrafts(current => ({ ...current, [row.id]: event.target.value }))} /></label><button className="identity-secondary" type="submit">Guardar correo</button></fieldset>
@@ -223,7 +242,7 @@ export default function Identity() {
       </div>
     </main>
     {pendingStatus && <div className="identity-confirm-overlay"><section className="identity-card identity-confirm" role="dialog" aria-modal="true" aria-labelledby="status-confirm-title" aria-describedby="status-confirm-description" onKeyDown={event => {
-      if (event.key === 'Escape') setPendingStatus(null)
+      if (event.key === 'Escape') closeStatus()
       if (event.key === 'Tab') {
         const buttons = event.currentTarget.querySelectorAll('button')
         if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[1].focus() }
@@ -232,7 +251,7 @@ export default function Identity() {
     }}>
       <h2 id="status-confirm-title">{pendingStatus.active ? 'Confirmar activación' : 'Confirmar desactivación'}</h2>
       <p id="status-confirm-description" className="identity-hint">{pendingStatus.platformStatus ? pendingStatus.target.initial_owner.email : pendingStatus.target.email}. {pendingStatus.platformStatus && !pendingStatus.active ? 'Todo el restaurante perderá el acceso y sus sesiones se cerrarán. Se conservarán los estados individuales y los históricos.' : pendingStatus.active ? 'Podrá iniciar sesión nuevamente si su restaurante tiene acceso activo. Los demás usuarios conservarán su estado.' : 'No podrá iniciar sesión y sus sesiones actuales se cerrarán. Su información histórica se conservará.'}</p>
-      <div className="identity-status-control"><button className="identity-secondary" autoFocus onClick={() => setPendingStatus(null)}>Cancelar</button><button className="identity-primary" onClick={() => updateStatus(pendingStatus.target, pendingStatus.active, pendingStatus.platformStatus)}>Confirmar</button></div>
+      <div className="identity-status-control"><button className="identity-secondary" autoFocus onClick={closeStatus}>Cancelar</button><button className="identity-primary" onClick={() => updateStatus(pendingStatus.target, pendingStatus.active, pendingStatus.platformStatus)}>Confirmar</button></div>
     </section></div>}
   </div>
 }

@@ -79,5 +79,6 @@ Si se confirma esta arquitectura, cada módulo: `service` (lógica), `repository
 - Roles locales por restaurante: `OWNER`, `ADMIN`, `CASHIER`, `WAITER`, `KITCHEN`. Caja hereda las funciones operativas de Mesero. Administrador global aprobado: crea/activa/desactiva restaurantes, crea futuros Dueños y los vincula; no obtiene acceso automático a empleados, ventas, caja ni otros datos operativos. Los formularios no conceden privilegios globales.
 - Errores al usuario: claros, en español, indicando qué pasó y cómo resolverlo (RNF-033).
 - UI táctil, responsiva, y nunca depender solo del color para un estado (RNF-029, RNF-031).
+- Acciones compactas por registro (RNF-029/031/032): si una misma entidad tiene **más de tres acciones**, usar una fila de iconos con `RecordActions.jsx`, nombres accesibles, ayudas al hover/foco y áreas táctiles de 44×44 px; desplegar editores a demanda y conservar confirmaciones/permisos. Con tres o menos, mantener texto. La regla completa y su alcance están en [`.cursor/rules/compact-record-actions.mdc`](.cursor/rules/compact-record-actions.mdc).
 - Confirmación antes de acciones críticas: cerrar caja/cuenta, anular, ajustar inventario (RNF-032).
 - Commits: `tipo(modulo): descripción [RF-xxx]`. Un commit por cosa que funcione.

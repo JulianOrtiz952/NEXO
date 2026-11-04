@@ -1,0 +1,16 @@
+---
+description: Acciones compactas y accesibles por registro en toda la interfaz NEXO
+globs: frontend/src/**/*.{jsx,css}
+alwaysApply: false
+---
+
+# Acciones por registro — RNF-029/031/032
+
+- Si un mismo registro tiene más de tres acciones distintas, reunirlas en una fila compacta de iconos usando `frontend/src/RecordActions.jsx`.
+- Contar operaciones sobre la misma entidad (producto, categoría, usuario, restaurante, mesa u otra), no botones de toda la pantalla. Por ejemplo: editar, cambiar precio, activar/desactivar y editar descripción son cuatro acciones de producto.
+- Mostrar los formularios de edición al solicitar cada acción, sin dejar todos desplegados. Guardar/Cancelar siguen siendo botones con texto y no se cuentan como acciones adicionales del registro.
+- Con tres acciones o menos, conservar botones con texto salvo decisión explícita del usuario. No convertir navegación, filtros ni acciones principales de alta por el total de botones de una pantalla.
+- Cada icono debe tener `aria-label` en español que identifique acción y registro, ayuda visible al hover/foco, foco perceptible y área táctil mínima de 44×44 px. Usar SVG decorativo con `aria-hidden`, estilo crema/dorado y distribución sin desbordamiento móvil.
+- Mantener estados deshabilitados y sus explicaciones, nombres/permisos existentes y confirmaciones de operaciones críticas. No depender solo del color ni conceder permisos por cambiar la presentación.
+- Reutilizar el componente y estilos compartidos; no instalar librerías de iconos para este patrón.
+- Verificar teclado, escritorio/móvil y los flujos afectados con backend real en QA, sin datos de demostración ni cambios en datos reales.
