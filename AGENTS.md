@@ -56,6 +56,7 @@ Si se confirma esta arquitectura, cada módulo: `service` (lógica), `repository
 10. **Nada hardcodeado** que cambie entre restaurantes: mesas, zonas, métodos de pago, motivos, umbrales (RNF-042).
 
 ## Reglas de comportamiento para la IA
+- Para dar un DN como realizado, deben cumplirse y verificarse **todos sus criterios de aceptación (CA) vigentes en Jira**, con evidencia de cada uno, incluidos seguridad, integridad de datos, permisos, aislamiento, pruebas e interfaz cuando correspondan. No declarar terminado un DN con CA pendientes, parciales, bloqueados o sin validar, ni omitirlos o debilitarlos para darlo por realizado. Solo una instrucción explícita del usuario permite saltar ese DN y continuar con otro: registrar la decisión y los CA pendientes en `PLAN.md`, dejándolo como omitido o pospuesto, no como realizado.
 - No marcar tareas de Jira como completadas ni moverlas a «Listo», «Hecho», «Done» o equivalentes. El usuario valida el resultado y realiza el cierre en Jira; las pruebas y los commits no autorizan a la IA a cerrar una tarea.
 - Antes de cambiar más de 3 archivos o tocar el esquema de BD, muéstrame un plan y espera mi OK.
 - Trabaja UN paso del Sprint vigente de `PLAN.md` a la vez; Jira registra el estado real. No adelantes funciones de V1/V2 mientras hacemos MVP.
