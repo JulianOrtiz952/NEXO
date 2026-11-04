@@ -43,3 +43,9 @@ Validación en navegador completada el 2026-11-04 sobre `nexo-dn41-qa.sqlite3`, 
 - Escritorio (viewport configurado en 1280×900) y móvil (390×844): edición legible, foco visible y controles táctiles; medición DOM sin desbordamiento horizontal. El viewport se restauró y las sesiones QA se cerraron al terminar.
 
 Evidencia guardada en la carpeta de visualizaciones del chat: `dn41-historial.png` y `dn41-carta-caja-movil.png`. DN-41 queda implementado y verificado; la validación final del usuario y el cierre en Jira siguen reservados al usuario. No se adelantan los siguientes DN.
+
+## Incidencia del servidor local — RF-025
+
+Tras la validación QA, el usuario reportó errores al crear y editar desde su frontend. El proceso de Django que atendía 8000 se había iniciado con `--noreload` y seguía usando el código previo: rechazaba `description` en el alta y no tenía la ruta de edición. La migración 0012 ya estaba aplicada.
+
+Se reinició únicamente ese backend y se verificó por HTTP directo (8000) y por el frontend real (5176): consulta de productos con descripción 200, validador actualizado con rechazo controlado de un campo adicional y edición sin cambios 200. Se compararon productos y cantidad de auditorías antes/después: intactos. Token temporal eliminado. Las 12 pruebas de productos/descripciones y `manage.py check` pasan. Al ejecutar Django con `--noreload`, reiniciarlo después de los cambios y verificar el proxy real además de QA.
