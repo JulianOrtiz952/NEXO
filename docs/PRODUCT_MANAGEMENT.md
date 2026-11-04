@@ -33,3 +33,11 @@ La carta autenticada agrupa visualmente por ID de categoría y conserva el orden
 Cuatro pruebas API de aceptación: igualdad de catálogo para Mesero/Caja, orden/estados/vacío, aislamiento bidireccional ante parámetros manipulados y rechazo de roles/escrituras. Una prueba nativa de Node verifica agrupación por ID sin mezclar categorías homónimas ni cambiar orden/datos. Once pruebas de carta/disponibilidad, lint/build y tres pruebas de frontend correctos.
 
 Navegador: Mesero y Caja ven secciones Entradas/Bebidas con los valores reales de QA, sin edición. Restaurante B solo ve sus propios productos. Escritorio y móvil; geometría DOM de tarjetas/encabezados dentro del viewport, sin desbordamiento horizontal. Evidencias `dn47-carta-escritorio.png` y `dn47-carta-movil.png`; las capturas de página completa del navegador integrado pueden presentar recorte de escala, por lo que el ancho se comprobó también con geometría DOM. Viewport restaurado al terminar.
+
+## DN-250 / RF-234 — Persistencia de auditoría (ampliación verificada)
+
+Tres pruebas nuevas ejecutan alta → edición → precio → desactivar/reactivar/desactivar, comparando todos los campos de los eventos anteriores (actor, entidad, restaurante, fecha y snapshots), y verifican que el historial sigue identificando el producto sin exposición a otro restaurante. La desactivación del actor conserva sus eventos e identificación. También se valida que desactivar una zona conserva su mesa y auditoría: **esto no equivale a desactivar individualmente la mesa**.
+
+Siete pruebas de aceptación de auditoría correctas (tres nuevas y cuatro previas). Navegador: tras desactivar el producto, el evento de precio sigue disponible en Historial con actor y valores originales. Los flujos previos de empleados/restaurantes mantienen su cobertura.
+
+**Pendiente para completar RF-234:** desactivación individual de mesas cuando exista ese flujo/estado; `Table` todavía no tiene `is_active`. No se añade ese comportamiento fuera del alcance aprobado ni se cierra DN-250 en Jira.
