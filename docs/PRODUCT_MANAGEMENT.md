@@ -17,3 +17,11 @@ El criterio de renombrado en **ventas históricas** queda pendiente hasta dispon
 `PATCH /api/products/<uuid>/price/` acepta solo precio no negativo con hasta diez enteros y dos decimales, almacenado como Decimal. Dueño/Administrador del restaurante pueden modificarlo; la carta consulta el valor actualizado. El editor reutiliza el formato aprobado, precarga el valor actual y permite cancelar. Evento atómico `product.price_changed`, sin modificar información ni disponibilidad ni snapshots anteriores.
 
 Cuatro pruebas nuevas: exactitud/límites/cero, campos inválidos, permisos/aislamiento bidireccional y reversión ante fallo de auditoría. Diez pruebas de edición/precio correctas, lint/build y dos pruebas de formato correctos. Navegador: $ 18,000.25 → $ 20,000.85, recarga y anterior/nuevo en Historial, evidencia `dn43-precio.png`. El CA de venta histórica de 18,000 tras cambiar a 20,000 y su aplicación a nuevas ventas se verificará cuando exista ventas; no se declara cumplido por probar únicamente el catálogo.
+
+## DN-44 / RF-028 — Disponibilidad
+
+`PATCH /api/products/<uuid>/status/` cambia exclusivamente `is_active`. Reutiliza autorización, bloqueo y auditoría atómica; envía un estado explícito, no un toggle en servidor. No elimina el producto ni sus eventos. Una categoría inactiva mantiene oculto el producto aunque se reactive. La consulta administrativa conserva ambos estados.
+
+Interfaz con confirmación al activar/desactivar, Escape/Cancelar, retorno de foco y navegación de teclado contenida. Navegador QA: cancelar no cambia el estado; confirmar desactivación oculta el producto de Carta; reactivar lo restaura con el precio actualizado. Siete pruebas de disponibilidad cubren ciclo, categoría inactiva, permisos/IDs ajenos, validación/revocación, rollback, reautorización bajo bloqueo y desactivación concurrente idempotente con una sola auditoría.
+
+El rechazo de un producto inactivo al crear **nuevos pedidos** y la conservación de **pedidos/ventas anteriores** quedan pendientes de esos módulos. El filtro de Carta no sustituye la futura validación en servidor al enviar pedidos. Sin borrado, migraciones ni cierre en Jira.

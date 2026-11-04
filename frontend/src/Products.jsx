@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from './identityApi.js'
 
 import AmountInput from './AmountInput.jsx'
@@ -12,6 +12,27 @@ export default function Products({ manage }) {
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(null)
   const [description, setDescription] = useState('')
+  const [pendingStatus, setPendingStatus] = useState(null)
+  const statusTrigger = useRef(null)
+
+  function closeStatus() {
+    setPendingStatus(null)
+    statusTrigger.current?.focus()
+  }
+
+  // RF-028, RNF-032: explicit availability target and confirmation, never toggle stale server state.
+  async function saveStatus(row) {
+    closeStatus()
+    setSaving(true)
+    setError('')
+    setNotice('')
+    try {
+      const updated = await api(`products/${row.id}/status/`, { method: 'PATCH', body: JSON.stringify({ is_active: !row.is_active }) })
+      setData(current => ({ ...current, products: current.products.map(product => product.id === row.id ? updated : product) }))
+      setNotice(updated.is_active ? 'Producto activado correctamente.' : 'Producto desactivado correctamente.')
+    } catch (problem) { setError(problem.message) }
+    finally { setSaving(false) }
+  }
 
   // RF-025: send only the description so unrelated product fields stay intact.
   async function saveDescription(event, row) {
@@ -112,6 +133,7 @@ export default function Products({ manage }) {
           <div className="identity-row-heading"><div><h3>{row.name}</h3><p>{row.category_name} · {formatMoney(row.price)}</p></div>
             {manage && <span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span>}</div>
           {row.description && <p className="product-description">{row.description}</p>}
+          {manage && <div className="identity-status-control"><button className="identity-secondary" disabled={saving} aria-label={`${row.is_active ? 'Desactivar' : 'Activar'} producto ${row.name}`} onClick={event => { statusTrigger.current = event.currentTarget; setPendingStatus(row) }}>{row.is_active ? 'Desactivar' : 'Activar'} producto</button></div>}
           {manage && (editing === `${row.id}:price` ? <form className="identity-form product-description-form" onSubmit={event => saveProduct(event, row, 'price')}>
             <fieldset disabled={saving}>
               <label>Nuevo precio de {row.name}<AmountInput name="price" labelId={`price-hint-${row.id}`} defaultValue={row.price} /></label>
@@ -137,5 +159,13 @@ export default function Products({ manage }) {
           </form> : <div className="identity-status-control"><button className="identity-secondary" disabled={saving} aria-label={`Editar descripción de ${row.name}`} onClick={() => { setEditing(row.id); setDescription(row.description); setNotice('') }}>Editar descripción</button></div>)}
         </li>)}</ul>}
     </section>
+    {pendingStatus && <div className="identity-confirm-overlay"><section className="identity-card identity-confirm" role="dialog" aria-modal="true" aria-labelledby="product-status-title" aria-describedby="product-status-description" onKeyDown={event => {
+      if (event.key === 'Escape') closeStatus()
+      if (event.key === 'Tab') {
+        const buttons = event.currentTarget.querySelectorAll('button')
+        if (event.shiftKey && document.activeElement === buttons[0]) { event.preventDefault(); buttons[1].focus() }
+        else if (!event.shiftKey && document.activeElement === buttons[1]) { event.preventDefault(); buttons[0].focus() }
+      }
+    }}><h2 id="product-status-title">{pendingStatus.is_active ? 'Desactivar producto' : 'Activar producto'}</h2><p id="product-status-description" className="identity-hint">¿Quieres {pendingStatus.is_active ? 'desactivar' : 'activar'} {pendingStatus.name}? {pendingStatus.is_active ? 'Dejará de mostrarse en la carta.' : 'Se mostrará en la carta si su categoría está activa.'} Su registro y su historial se conservarán.</p><div className="identity-status-control"><button className="identity-secondary" autoFocus onClick={closeStatus}>Cancelar</button><button className="identity-primary" onClick={() => saveStatus(pendingStatus)}>Confirmar {pendingStatus.is_active ? 'desactivación' : 'activación'}</button></div></section></div>}
   </div>
 }

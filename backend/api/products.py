@@ -112,6 +112,10 @@ class ProductPriceInput(ProductEditInput):
     allowed_fields = ('price',)
 
 
+class ProductStatusInput(ProductEditInput):
+    allowed_fields = ('is_active',)
+
+
 def update_product(request, product_id, input_class, action):
     membership = manager(request.user)
     try:
@@ -164,6 +168,13 @@ def product_details(request, product_id):
 def product_price(request, product_id):
     # RF-027: exact Decimal input; existing records and snapshots are never rewritten.
     return update_product(request, product_id, ProductPriceInput, 'product.price_changed')
+
+
+@never_cache
+@api_view(['PATCH'])
+def product_status(request, product_id):
+    # RF-028, RN-113: change availability without deleting the product or its history.
+    return update_product(request, product_id, ProductStatusInput, 'product.status_changed')
 
 
 @never_cache

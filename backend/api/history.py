@@ -16,6 +16,7 @@ ACTION_TYPES = {
     'product.created': ('Productos', 'Creación'),
     'product.updated': ('Productos', 'Edición'),
     'product.price_changed': ('Productos', 'Cambio de precio'),
+    'product.status_changed': ('Productos', 'Cambio de estado'),
     'product.description_changed': ('Productos', 'Cambio de descripción'),
     'category.created': ('Categorías', 'Creación'),
     'category.updated': ('Categorías', 'Edición'),
