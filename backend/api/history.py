@@ -15,6 +15,7 @@ ACTION_TYPES = {
     'payment_method.status_changed': ('Métodos de pago', 'Cambio de estado'),
     'product.created': ('Productos', 'Creación'),
     'product.updated': ('Productos', 'Edición'),
+    'product.price_changed': ('Productos', 'Cambio de precio'),
     'product.description_changed': ('Productos', 'Cambio de descripción'),
     'category.created': ('Categorías', 'Creación'),
     'category.updated': ('Categorías', 'Edición'),

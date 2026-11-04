@@ -108,6 +108,10 @@ class ProductEditInput(ProductInput):
         return data
 
 
+class ProductPriceInput(ProductEditInput):
+    allowed_fields = ('price',)
+
+
 def update_product(request, product_id, input_class, action):
     membership = manager(request.user)
     try:
@@ -153,6 +157,13 @@ def product_details(request, product_id):
             raise NotFound('No se encontró el producto en tu restaurante.')
         return Response(output(product))
     return update_product(request, product_id, ProductEditInput, 'product.updated')
+
+
+@never_cache
+@api_view(['PATCH'])
+def product_price(request, product_id):
+    # RF-027: exact Decimal input; existing records and snapshots are never rewritten.
+    return update_product(request, product_id, ProductPriceInput, 'product.price_changed')
 
 
 @never_cache

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { formatAmountInput } from './numberFormat.js'
 
-export default function AmountInput({ name, labelId }) {
+export default function AmountInput({ name, labelId, defaultValue }) {
   const input = useRef(null)
   useEffect(() => {
     const element = input.current
@@ -31,7 +31,7 @@ export default function AmountInput({ name, labelId }) {
     element.setCustomValidity('')
   }
 
-  return <input ref={input} name={name} type="text" inputMode="decimal" required aria-describedby={labelId}
+  return <input ref={input} name={name} defaultValue={defaultValue === undefined ? undefined : formatAmountInput(defaultValue)} type="text" inputMode="decimal" required aria-describedby={labelId}
     autoComplete="off" spellCheck={false} onChange={change} onKeyDown={event => {
       // RF-024: deleting next to a separator also deletes the adjacent digit.
       const element = event.currentTarget

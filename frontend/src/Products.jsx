@@ -49,16 +49,17 @@ export default function Products({ manage }) {
   }, [manage, revision])
 
   // RF-026: the information editor cannot change price or availability.
-  async function saveProduct(event, row) {
+  async function saveProduct(event, row, operation = 'details') {
     event.preventDefault()
     const values = Object.fromEntries(new FormData(event.currentTarget))
+    if (operation === 'price') values.price = parseAmount(values.price)
     setSaving(true)
     setError('')
     setNotice('')
     try {
-      await api(`products/${row.id}/`, { method: 'PATCH', body: JSON.stringify(values) })
+      await api(`products/${row.id}/${operation === 'price' ? 'price/' : ''}`, { method: 'PATCH', body: JSON.stringify(values) })
       setEditing(null)
-      setNotice('Producto actualizado correctamente.')
+      setNotice(operation === 'price' ? 'Precio actualizado correctamente.' : 'Producto actualizado correctamente.')
       setRevision(value => value + 1)
     } catch (problem) { setError(problem.message) }
     finally { setSaving(false) }
@@ -111,6 +112,13 @@ export default function Products({ manage }) {
           <div className="identity-row-heading"><div><h3>{row.name}</h3><p>{row.category_name} · {formatMoney(row.price)}</p></div>
             {manage && <span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span>}</div>
           {row.description && <p className="product-description">{row.description}</p>}
+          {manage && (editing === `${row.id}:price` ? <form className="identity-form product-description-form" onSubmit={event => saveProduct(event, row, 'price')}>
+            <fieldset disabled={saving}>
+              <label>Nuevo precio de {row.name}<AmountInput name="price" labelId={`price-hint-${row.id}`} defaultValue={row.price} /></label>
+              <small id={`price-hint-${row.id}`}>COP. Usa punto para los decimales. Ejemplo: 11,999.85.</small>
+              <div className="identity-status-control"><button className="identity-primary" type="submit">{saving ? 'Guardando…' : 'Guardar precio'}</button><button className="identity-secondary" type="button" onClick={() => setEditing(null)}>Cancelar precio</button></div>
+            </fieldset>
+          </form> : <div className="identity-status-control"><button className="identity-secondary" disabled={saving} aria-label={`Cambiar precio de ${row.name}`} onClick={() => { setEditing(`${row.id}:price`); setNotice('') }}>Cambiar precio</button></div>)}
           {manage && (editing === `${row.id}:details` ? <form key={row.id} className="identity-form product-description-form" onSubmit={event => saveProduct(event, row)}>
             <fieldset disabled={saving}>
               <label>Nombre de {row.name}<input autoFocus name="name" required maxLength={160} defaultValue={row.name} /></label>

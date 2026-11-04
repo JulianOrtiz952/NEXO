@@ -72,6 +72,7 @@
 **Resultado esperado:** Zonas, mesas, carta, precio, exclusiones, observaciones; todo acotado al tenant.
 
 **Bloque DN-42/43/44/47 y verificación DN-250/DN-20, aprobado el 2026-11-04:**
+- [x] DN-43 / RF-027: editor de precio exacto con formato NEXO, endpoint independiente, permisos/aislamiento y auditoría atómica. Diez pruebas de edición/precio, lint/build, dos pruebas de formato y navegador con recarga e Historial correctos. CA de nuevas ventas/ventas históricas pendiente hasta ese módulo; sin cierre en Jira.
 - [x] DN-42 / RF-026: edición de nombre/descripción/categoría por OWNER/ADMIN, pertenencia y categoría activa propia, ID/precio/estado conservados, auditoría atómica y UI NEXO. 18 pruebas dedicadas, lint/build y navegador con recarga correctos. Ventas históricas pendientes por ausencia de ese módulo; ver `docs/PRODUCT_MANAGEMENT.md`. Sin migraciones ni cierre en Jira.
 
 **Avance DN-41 / RF-025 (2026-11-04), plan y CA aprobados en el chat:**
