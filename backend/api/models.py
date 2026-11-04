@@ -97,3 +97,15 @@ class Table(models.Model):
         if kwargs.get('update_fields') is not None:
             kwargs['update_fields'] = set(kwargs['update_fields']) | {'name_key'}
         return super().save(*args, **kwargs)
+
+
+class Product(models.Model):
+    # RF-024: restaurant ownership is derived exclusively from the protected category.
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    category = models.ForeignKey(Category, on_delete=models.PROTECT)
+    name = models.CharField(max_length=160)
+    price = models.DecimalField(max_digits=12, decimal_places=2)
+    is_active = models.BooleanField()
+
+    class Meta:
+        constraints = [models.CheckConstraint(condition=models.Q(price__gte=0), name='product_price_nonnegative')]

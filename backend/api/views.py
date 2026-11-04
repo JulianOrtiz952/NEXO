@@ -16,7 +16,7 @@ def health(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def menu(request):
+def demo_menu(request):
     import json
     from pathlib import Path
     products = json.loads(Path(__file__).with_name('menu.json').read_text(encoding='utf-8'))

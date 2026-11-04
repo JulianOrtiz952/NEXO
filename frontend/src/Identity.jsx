@@ -4,6 +4,7 @@ import './Identity.css'
 import History from './History.jsx'
 import Zones from './Zones.jsx'
 import Categories from './Categories.jsx'
+import Products from './Products.jsx'
 import Tables from './Tables.jsx'
 const labels = { users: 'Usuarios', tables: 'Mesas', kitchen: 'Cocina', menu: 'Carta', cashier: 'Caja', restaurants: 'Restaurantes' }
 const roles = { OWNER: 'Dueño', ADMIN: 'Administrador', CASHIER: 'Caja', WAITER: 'Mesero', KITCHEN: 'Cocina' }
@@ -151,15 +152,15 @@ export default function Identity() {
   if (!user) return <main className="identity-gate"><a className="welcome-logo" href="/">NEX<span>O</span></a><h1>Tu espacio en NEXO</h1><p role="status">{message || 'Validando tu acceso…'}</p><a className="identity-primary" href="/login">Iniciar sesión →</a></main>
   const platform = user.role === 'PLATFORM_ADMIN'
   const canManage = user.modules.includes('users')
-  const availableSections = platform ? ['accounts', 'restaurants', 'history'] : canManage ? ['accounts', 'zones', 'tables', 'categories', 'history', 'access'] : ['access']
+  const availableSections = platform ? ['accounts', 'restaurants', 'history'] : canManage ? ['accounts', 'zones', 'tables', 'categories', 'products', 'menu', 'history', 'access'] : user.modules.includes('menu') ? ['menu', 'access'] : ['access']
   const activeSection = availableSections.includes(section) ? section : availableSections[0]
-  const sectionLabels = { accounts: platform ? 'Dueños' : 'Usuarios y roles', restaurants: 'Restaurantes', history: 'Historial', zones: 'Zonas', categories: 'Categorías', tables: 'Mesas', access: 'Mi acceso' }
+  const sectionLabels = { accounts: platform ? 'Dueños' : 'Usuarios y roles', restaurants: 'Restaurantes', history: 'Historial', zones: 'Zonas', categories: 'Categorías', products: 'Productos', menu: 'Carta', tables: 'Mesas', access: 'Mi acceso' }
   return <div className="identity-shell">
     <aside className="identity-sidebar">
       <a className="identity-brand" href="/">NEX<span>O</span></a><p className="identity-caption">CADA CONEXIÓN CUENTA</p>
       <p className="identity-section-label">TU ESPACIO</p>
       <nav aria-label="Gestión autorizada">
-        {availableSections.map(item => <a key={item} href={`#${item}`} aria-current={activeSection === item ? 'page' : undefined}><span aria-hidden="true">{({ accounts: '◎', restaurants: '▦', history: '◷', zones: '▦', categories: '◇', tables: '▦', access: '◇' })[item]}</span><span>{sectionLabels[item]}</span></a>)}
+        {availableSections.map(item => <a key={item} href={`#${item}`} aria-current={activeSection === item ? 'page' : undefined}><span aria-hidden="true">{({ accounts: '◎', restaurants: '▦', history: '◷', zones: '▦', categories: '◇', products: '▤', menu: '▤', tables: '▦', access: '◇' })[item]}</span><span>{sectionLabels[item]}</span></a>)}
       </nav>
       <div className="identity-side-note"><span>Una operación conectada.</span><p>{platform ? 'Cada restaurante, con su propio equipo y su propio espacio.' : 'Las personas correctas, en cada lugar de tu restaurante.'}</p></div>
       <div className="identity-profile"><span className="identity-avatar">{user.email.slice(0, 1).toUpperCase()}</span><div><strong>{roles[user.role] || 'Administrador global'}</strong><small>{user.email}</small></div></div>
@@ -168,7 +169,7 @@ export default function Identity() {
     <main className="identity-main">
       <header className="identity-topbar"><span>NEXO / {platform ? 'Plataforma' : user.restaurant.name} / {sectionLabels[activeSection]}</span><span className="identity-session">Sesión de 1 hora</span></header>
       <div className="identity-content">
-        <header className="identity-heading"><p className="identity-eyebrow">{platform ? 'ADMINISTRACIÓN DE PLATAFORMA' : 'TU RESTAURANTE, CONECTADO'}</p><h1>{activeSection === 'categories' ? 'Cada categoría, en su lugar.' : activeSection === 'tables' ? 'Un lugar para cada mesa.' : activeSection === 'zones' ? 'Cada espacio, en su lugar.' : activeSection === 'history' ? 'Cada cambio, con su historia.' : activeSection === 'restaurants' ? 'Conecta cada restaurante.' : activeSection === 'access' ? 'Tu espacio en NEXO.' : platform ? 'Las personas detrás de cada espacio.' : 'Personas que hacen equipo.'}</h1><p>{activeSection === 'categories' ? 'Crea, ordena y administra las categorías de tu restaurante.' : activeSection === 'tables' ? 'Crea y consulta las mesas de cada zona de tu restaurante.' : activeSection === 'zones' ? 'Crea y organiza las zonas de tu restaurante.' : activeSection === 'history' ? 'Consulta quién realizó cada cambio, cuándo ocurrió y cuáles fueron sus valores anteriores y nuevos.' : activeSection === 'access' ? 'Estos son los módulos habilitados para tu rol y tu restaurante.' : platform ? activeSection === 'restaurants' ? 'Crea restaurantes, vincula Dueños y administra su acceso.' : 'Crea las cuentas de futuros Dueños para vincularlas después a un restaurante.' : `Administra los accesos de ${user.restaurant.name}. Cada persona, con el rol que necesita.`}</p></header>
+        <header className="identity-heading"><p className="identity-eyebrow">{platform ? 'ADMINISTRACIÓN DE PLATAFORMA' : 'TU RESTAURANTE, CONECTADO'}</p><h1>{activeSection === 'products' ? 'Productos de tu restaurante.' : activeSection === 'menu' ? 'La carta de tu restaurante.' : activeSection === 'categories' ? 'Cada categoría, en su lugar.' : activeSection === 'tables' ? 'Un lugar para cada mesa.' : activeSection === 'zones' ? 'Cada espacio, en su lugar.' : activeSection === 'history' ? 'Cada cambio, con su historia.' : activeSection === 'restaurants' ? 'Conecta cada restaurante.' : activeSection === 'access' ? 'Tu espacio en NEXO.' : platform ? 'Las personas detrás de cada espacio.' : 'Personas que hacen equipo.'}</h1><p>{activeSection === 'products' ? 'Registra los productos de tu restaurante y consulta su estado.' : activeSection === 'menu' ? 'Consulta los productos disponibles, en el orden de sus categorías.' : activeSection === 'categories' ? 'Crea, ordena y administra las categorías de tu restaurante.' : activeSection === 'tables' ? 'Crea y consulta las mesas de cada zona de tu restaurante.' : activeSection === 'zones' ? 'Crea y organiza las zonas de tu restaurante.' : activeSection === 'history' ? 'Consulta quién realizó cada cambio, cuándo ocurrió y cuáles fueron sus valores anteriores y nuevos.' : activeSection === 'access' ? 'Estos son los módulos habilitados para tu rol y tu restaurante.' : platform ? activeSection === 'restaurants' ? 'Crea restaurantes, vincula Dueños y administra su acceso.' : 'Crea las cuentas de futuros Dueños para vincularlas después a un restaurante.' : `Administra los accesos de ${user.restaurant.name}. Cada persona, con el rol que necesita.`}</p></header>
         {activeSection !== 'history' && <div className="identity-summary"><div><span>{platform ? 'RESTAURANTES' : 'RESTAURANTE'}</span><strong>{platform ? rows.length : user.restaurant.name}</strong></div><div><span>{platform ? 'DUEÑOS POR VINCULAR' : 'TU ROL'}</span><strong>{platform ? owners.length : roles[user.role]}</strong></div><div><span>ACCESO</span><strong>{platform ? 'Administración global' : 'Solo tu restaurante'}</strong></div></div>}
         {message && <p className="identity-message" role="status">{message}</p>}
         {(platform || canManage) && ['accounts', 'restaurants'].includes(activeSection) && <div className="identity-grid">
@@ -208,6 +209,7 @@ export default function Identity() {
           </>}</li>)}</ul>}
         </section>}
         {canManage && activeSection === 'tables' && <Tables key={`${user.id}-${user.role}`} refreshKey={historyVersion} onAccessError={handleError} />}
+        {(activeSection === 'products' || activeSection === 'menu') && <Products key={`${user.id}-${user.restaurant.id}-${activeSection}`} manage={activeSection === 'products'} />}
         {canManage && activeSection === 'categories' && <Categories key={`${user.id}-${user.role}`} refreshKey={historyVersion} onAccessError={handleError} />}
         {canManage && activeSection === 'zones' && <Zones key={`${user.id}-${user.role}`} refreshKey={historyVersion} onAccessError={handleError} />}
         {(platform || canManage) && activeSection === 'history' && <History key={`${user.id}-${user.role}`} refreshKey={historyVersion} />}
