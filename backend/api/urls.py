@@ -5,6 +5,7 @@ from . import identity
 from .history import history
 from .zones import zones
 from .categories import categories, reorder_categories
+from .operation_reasons import operation_reasons
 from .payment_methods import payment_methods
 from .tables import zone_tables, table_details
 
@@ -18,6 +19,8 @@ urlpatterns += [
     path('users/<int:user_id>/status/', identity.user_status),
     path('history/', history),
     path('zones/', zones),
+    path('operation-reasons/', operation_reasons),
+    path('operation-reasons/<uuid:reason_id>/', operation_reasons),
     path('payment-methods/', payment_methods),
     path('payment-methods/<uuid:payment_method_id>/', payment_methods),
     path('products/', products),

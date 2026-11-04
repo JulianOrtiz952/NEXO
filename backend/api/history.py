@@ -8,6 +8,8 @@ from .models import AuditLog
 
 # RF-012, RNF-007: register each supported action with its category and type.
 ACTION_TYPES = {
+    'reason.created': ('Motivos', 'Creación'),
+    'reason.updated': ('Motivos', 'Edición'),
     'payment_method.created': ('Métodos de pago', 'Creación'),
     'payment_method.updated': ('Métodos de pago', 'Edición'),
     'payment_method.status_changed': ('Métodos de pago', 'Cambio de estado'),
@@ -55,7 +57,7 @@ def history(request):
     paginator = PageNumberPagination()
     paginator.page_size = 20
     page = paginator.paginate_queryset(rows.order_by('-created_at', '-pk'), request)
-    visible_keys = {'email', 'role', 'is_active', 'name', 'owner', 'cascading', 'zone_name', 'position', 'price', 'category_name'}
+    visible_keys = {'email', 'role', 'is_active', 'name', 'owner', 'cascading', 'zone_name', 'position', 'price', 'category_name', 'operation_type_label'}
     results = []
     for event in page:
         target = event.after.get('email') or event.before.get('email')
@@ -67,6 +69,8 @@ def history(request):
             target = event.restaurant.name if event.restaurant else 'Restaurante'
         if event.action.startswith('product.'):
             target = event.after.get('name') or 'Producto'
+        if event.action.startswith('reason.'):
+            target = event.after.get('name') or event.before.get('name') or 'Motivo'
         if event.action.startswith('payment_method.'):
             target = event.after.get('name') or event.before.get('name') or 'Método de pago'
         if event.action.startswith('category.'):

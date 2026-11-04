@@ -242,3 +242,8 @@
 ### Validación incremental Sprint 02 — DN-36 / RF-020
 - [x] Configuración de métodos de pago: Dueño/Administrador crean, editan, activan y desactivan registros del propio restaurante, sin borrado, con auditoría atómica. Cuatro pruebas dedicadas correctas; navegador QA con ciclo completo y recarga. Migración 0010 reversible validada en base temporal.
 - [ ] Revisar/aplicar 0010 a la base local y validar con el usuario. CA-02 sobre ventas históricas pendiente del Sprint 07; no se simulan ventas ni se cierra Jira.
+
+### Validación incremental Sprint 02 — DN-37 / RF-021
+- [x] Configuración de motivos por tipo de operación: cancelación, modificación, desperdicio, devolución y anulación. Dueño/Administrador crean, editan y filtran dentro de su restaurante; auditoría atómica, sin borrado. Cuatro pruebas dedicadas; QA de navegador con cinco tipos, filtro, edición, recarga, historial, segundo restaurante y Mesero sin gestión. Móvil de 390 px sin desbordamiento.
+- [x] Migraciones 0010/0011 aplicadas, revertidas a 0009 y reaplicadas en base temporal; usuarios, restaurantes, membresías, categorías, productos, zonas, mesas y auditoría previos conservados. Check, consistencia de migraciones y lint/build correctos; frontend JavaScript sin script typecheck.
+- [ ] Revisar/aplicar 0010/0011 a la base local, validar con el usuario y comprobar CA-02 de DN-37 en los futuros flujos operativos. No se declaran DN-36/DN-37 cerrados ni se modifican estados de Jira.

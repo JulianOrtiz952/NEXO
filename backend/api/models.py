@@ -117,3 +117,23 @@ class PaymentMethod(models.Model):
     restaurant = models.ForeignKey(Restaurant, on_delete=models.PROTECT)
     name = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
+
+
+class OperationReason(models.Model):
+    # RF-021: operation types come from the requirement; reason text is tenant configuration.
+    class OperationType(models.TextChoices):
+        CANCELLATION = 'CANCELLATION', 'Cancelación'
+        MODIFICATION = 'MODIFICATION', 'Modificación'
+        WASTE = 'WASTE', 'Desperdicio'
+        RETURN = 'RETURN', 'Devolución'
+        VOID = 'VOID', 'Anulación'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    restaurant = models.ForeignKey(Restaurant, on_delete=models.PROTECT)
+    name = models.CharField(max_length=100)
+    operation_type = models.CharField(max_length=16, choices=OperationType.choices)
+
+    class Meta:
+        constraints = [models.CheckConstraint(
+            condition=models.Q(operation_type__in=['CANCELLATION', 'MODIFICATION', 'WASTE', 'RETURN', 'VOID']),
+            name='reason_valid_operation_type')]
