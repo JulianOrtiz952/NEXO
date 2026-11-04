@@ -14,6 +14,7 @@ ACTION_TYPES = {
     'payment_method.updated': ('Métodos de pago', 'Edición'),
     'payment_method.status_changed': ('Métodos de pago', 'Cambio de estado'),
     'product.created': ('Productos', 'Creación'),
+    'product.description_changed': ('Productos', 'Cambio de descripción'),
     'category.created': ('Categorías', 'Creación'),
     'category.updated': ('Categorías', 'Edición'),
     'category.status_changed': ('Categorías', 'Cambio de estado'),
@@ -57,7 +58,7 @@ def history(request):
     paginator = PageNumberPagination()
     paginator.page_size = 20
     page = paginator.paginate_queryset(rows.order_by('-created_at', '-pk'), request)
-    visible_keys = {'email', 'role', 'is_active', 'name', 'owner', 'cascading', 'zone_name', 'position', 'price', 'category_name', 'operation_type_label'}
+    visible_keys = {'email', 'role', 'is_active', 'name', 'description', 'owner', 'cascading', 'zone_name', 'position', 'price', 'category_name', 'operation_type_label'}
     results = []
     for event in page:
         target = event.after.get('email') or event.before.get('email')

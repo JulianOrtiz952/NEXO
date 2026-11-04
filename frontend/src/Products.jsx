@@ -10,6 +10,26 @@ export default function Products({ manage }) {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [description, setDescription] = useState('')
+
+  // RF-025: send only the description so unrelated product fields stay intact.
+  async function saveDescription(event, row) {
+    event.preventDefault()
+    setSaving(true)
+    setError('')
+    setNotice('')
+    try {
+      const updated = await api(`products/${row.id}/description/`, { method: 'PATCH', body: JSON.stringify({ description }) })
+      setData(current => ({ ...current, products: current.products.map(product => product.id === updated.id ? updated : product) }))
+      setEditing(null)
+      setNotice('Descripción guardada correctamente.')
+    } catch (problem) {
+      setError(problem.message)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -56,6 +76,7 @@ export default function Products({ manage }) {
       <form className="identity-form" onSubmit={create}>
         <fieldset disabled={saving || !data?.categories.length}>
           <label>Nombre<input name="name" required maxLength={160} /></label>
+          <label>Descripción (opcional)<textarea name="description" rows={3} placeholder="Cuenta qué incluye este producto…" /></label>
           <label>Precio en COP<AmountInput name="price" labelId="price-format-hint" /></label>
           <small id="price-format-hint">Ejemplos: 1,000 · 1'000,000 · 11,999.85. Usa punto para los decimales.</small>
           <label>Categoría<select name="category" required defaultValue=""><option value="" disabled>Selecciona una categoría</option>{data?.categories.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
@@ -73,6 +94,14 @@ export default function Products({ manage }) {
         : <ul className="identity-list">{data.products.map(row => <li key={row.id}>
           <div className="identity-row-heading"><div><h3>{row.name}</h3><p>{row.category_name} · {formatMoney(row.price)}</p></div>
             {manage && <span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span>}</div>
+          {row.description && <p className="product-description">{row.description}</p>}
+          {manage && (editing === row.id ? <form className="identity-form product-description-form" onSubmit={event => saveDescription(event, row)}>
+            <fieldset disabled={saving}>
+              <label>Descripción de {row.name}<textarea autoFocus rows={4} value={description} onChange={event => setDescription(event.target.value)} /></label>
+              <small>Puedes dejarla vacía. Solo se modificará la descripción.</small>
+              <div className="identity-status-control"><button className="identity-primary" type="submit">{saving ? 'Guardando…' : 'Guardar descripción'}</button><button className="identity-secondary" type="button" onClick={() => setEditing(null)}>Cancelar</button></div>
+            </fieldset>
+          </form> : <div className="identity-status-control"><button className="identity-secondary" disabled={saving} aria-label={`Editar descripción de ${row.name}`} onClick={() => { setEditing(row.id); setDescription(row.description); setNotice('') }}>Editar descripción</button></div>)}
         </li>)}</ul>}
     </section>
   </div>

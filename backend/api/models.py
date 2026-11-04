@@ -104,6 +104,8 @@ class Product(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     category = models.ForeignKey(Category, on_delete=models.PROTECT)
     name = models.CharField(max_length=160)
+    # RF-025: optional description; existing products keep an empty value.
+    description = models.TextField(blank=True, default='')
     price = models.DecimalField(max_digits=12, decimal_places=2)
     is_active = models.BooleanField()
 

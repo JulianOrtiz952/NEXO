@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import health, demo_menu
-from .products import products, menu
+from .products import products, menu, product_description
 from . import identity
 from .history import history
 from .zones import zones
@@ -24,6 +24,7 @@ urlpatterns += [
     path('payment-methods/', payment_methods),
     path('payment-methods/<uuid:payment_method_id>/', payment_methods),
     path('products/', products),
+    path('products/<uuid:product_id>/description/', product_description),
     path('demo/menu/', demo_menu),
     path('categories/', categories),
     path('categories/reorder/', reorder_categories),
