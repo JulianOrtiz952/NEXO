@@ -71,6 +71,9 @@
 **RF:** RF-012–018; RF-020–021; RF-023–028; RF-031; RF-034–035.
 **Resultado esperado:** Zonas, mesas, carta, precio, exclusiones, observaciones; todo acotado al tenant.
 
+**Bloque DN-42/43/44/47 y verificación DN-250/DN-20, aprobado el 2026-11-04:**
+- [x] DN-42 / RF-026: edición de nombre/descripción/categoría por OWNER/ADMIN, pertenencia y categoría activa propia, ID/precio/estado conservados, auditoría atómica y UI NEXO. 18 pruebas dedicadas, lint/build y navegador con recarga correctos. Ventas históricas pendientes por ausencia de ese módulo; ver `docs/PRODUCT_MANAGEMENT.md`. Sin migraciones ni cierre en Jira.
+
 **Avance DN-41 / RF-025 (2026-11-04), plan y CA aprobados en el chat:**
 - [x] Corrección del entorno local tras reporte del usuario: el Django de 8000 seguía ejecutando código anterior con `--noreload`; reiniciado con RF-025 actualizado. Verificados GET productos 200, rechazo controlado de campos extra con el validador nuevo y PATCH de descripción sin cambios 200, tanto directo como por el frontend real 5176. Productos/auditorías intactos, token temporal eliminado, 12 pruebas dedicadas y check correctos; 0012 aplicada. No se modificó lógica de negocio ni Jira.
 - [x] Implementación de descripción opcional al registrar, consulta en Productos/Carta y edición independiente por OWNER/ADMIN, con vaciado, cancelación, auditoría atómica anterior/nuevo y aislamiento en servidor. Interfaz NEXO conectada; sin dependencias nuevas. Detalles y revisión de migración en `docs/PRODUCT_DESCRIPTIONS.md`.

@@ -96,6 +96,65 @@ class DescriptionInput(serializers.Serializer):
         return data
 
 
+class ProductEditInput(ProductInput):
+    allowed_fields = ('name', 'description', 'category')
+
+    def get_fields(self):
+        return {key: field for key, field in super().get_fields().items() if key in self.allowed_fields}
+
+    def validate(self, data):
+        if not data or set(self.initial_data) - set(self.fields):
+            raise serializers.ValidationError('Envía únicamente los campos permitidos para esta edición.')
+        return data
+
+
+def update_product(request, product_id, input_class, action):
+    membership = manager(request.user)
+    try:
+        # RF-026, RNF-004/007/019: serialize edits and reauthorize before touching tenant data.
+        with transaction.atomic():
+            Restaurant.objects.filter(pk=membership.restaurant_id).update(is_active=F('is_active'))
+            membership = manager(request.user)
+            product = catalog(membership).filter(pk=product_id).first()
+            if product is None:
+                raise NotFound('No se encontró el producto en tu restaurante.')
+            serializer = input_class(data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            values = serializer.validated_data.copy()
+            if 'category' in values:
+                category = Category.objects.filter(pk=values['category'], restaurant_id=membership.restaurant_id).first()
+                if category is None or (not category.is_active and category.pk != product.category_id):
+                    raise serializers.ValidationError({'category': 'Selecciona una categoría activa de tu restaurante.'})
+                values['category'] = category
+            before = {key: value for key, value in output(product).items() if key != 'id'}
+            changed = [key for key, value in values.items() if getattr(product, key) != value]
+            if changed:
+                for key in changed:
+                    setattr(product, key, values[key])
+                product.save(update_fields=changed)
+                after = {key: value for key, value in output(product).items() if key != 'id'}
+                AuditLog.objects.create(restaurant_id=membership.restaurant_id, actor=request.user,
+                                        action=action, entity_id=str(product.pk), before=before, after=after)
+            result = output(product)
+    except OperationalError as error:
+        if 'locked' not in str(error).lower():
+            raise
+        return Response({'detail': 'Hay otra operación en curso. Intenta guardar de nuevo.'}, status=409)
+    return Response(result)
+
+
+@never_cache
+@api_view(['GET', 'PATCH'])
+def product_details(request, product_id):
+    if request.method == 'GET':
+        membership = manager(request.user)
+        product = catalog(membership).filter(pk=product_id).first()
+        if product is None:
+            raise NotFound('No se encontró el producto en tu restaurante.')
+        return Response(output(product))
+    return update_product(request, product_id, ProductEditInput, 'product.updated')
+
+
 @never_cache
 @api_view(['PATCH'])
 def product_description(request, product_id):
