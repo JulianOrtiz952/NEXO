@@ -1,3 +1,4 @@
+import { formatQuantity, formatMoney } from './numberFormat.js'
 import { useEffect, useState } from 'react'
 import { api } from './identityApi.js'
 
@@ -5,7 +6,7 @@ const actions = { 'product.created': 'Producto registrado', 'category.created': 
 const fields = { price: 'Precio en COP', category_name: 'Categoría', position: 'Posición', zone_name: 'Zona', email: 'Correo', role: 'Rol', is_active: 'Estado', name: 'Nombre', owner: 'Dueño vinculado', cascading: 'Afecta al acceso del restaurante' }
 const roles = { OWNER: 'Dueño', ADMIN: 'Administrador', CASHIER: 'Caja', WAITER: 'Mesero', KITCHEN: 'Cocina' }
 function describe(values) {
-  return Object.entries(values).map(([key, value]) => `${fields[key] || key}: ${key === 'is_active' ? value ? 'Activo' : 'Inactivo' : key === 'cascading' ? value ? 'Sí' : 'No' : key === 'role' ? roles[value] || value : value}`).join(' · ') || 'Sin valor anterior'
+  return Object.entries(values).map(([key, value]) => `${fields[key] || key}: ${key === 'price' ? formatMoney(value) : key === 'position' ? formatQuantity(value) : key === 'is_active' ? value ? 'Activo' : 'Inactivo' : key === 'cascading' ? value ? 'Sí' : 'No' : key === 'role' ? roles[value] || value : value}`).join(' · ') || 'Sin valor anterior'
 }
 
 export default function History({ refreshKey }) {
@@ -14,12 +15,12 @@ export default function History({ refreshKey }) {
   const [retry, setRetry] = useState(0)
   const [action, setAction] = useState('')
   const [options, setOptions] = useState([])
-  const requestKey = `${page}-${action}-${refreshKey}-${retry}`
+  const requestKey = `${formatQuantity(page)}-${action}-${refreshKey}-${retry}`
   const data = result?.key === requestKey ? result.data : null
   const error = result?.key === requestKey ? result.error : ''
   useEffect(() => {
     let cancelled = false
-    api(`history/?page=${page}&action=${encodeURIComponent(action)}`).then(data => { if (!cancelled) { setResult({ key: requestKey, data }); setOptions(data.action_options) } }).catch(problem => { if (!cancelled) setResult({ key: requestKey, error: problem.message }) })
+    api(`history/?page=${formatQuantity(page)}&action=${encodeURIComponent(action)}`).then(data => { if (!cancelled) { setResult({ key: requestKey, data }); setOptions(data.action_options) } }).catch(problem => { if (!cancelled) setResult({ key: requestKey, error: problem.message }) })
     return () => { cancelled = true }
   }, [page, action, requestKey])
   return <section className="identity-card identity-directory" id="history">
@@ -33,7 +34,7 @@ export default function History({ refreshKey }) {
         <p className="identity-hint">{event.target} · {event.restaurant}<br />Realizado por: {event.actor}</p>
         <dl className="identity-history-values"><div><dt>Antes</dt><dd>{describe(event.before)}</dd></div><div><dt>Después</dt><dd>{describe(event.after)}</dd></div></dl>
       </li>)}</ol>}
-      <div className="identity-history-pages"><button className="identity-secondary" disabled={!data.previous} onClick={() => setPage(value => value - 1)}>Más recientes</button><span>Página {page} · {data.count} acciones</span><button className="identity-secondary" disabled={!data.next} onClick={() => setPage(value => value + 1)}>Anteriores</button></div>
+      <div className="identity-history-pages"><button className="identity-secondary" disabled={!data.previous} onClick={() => setPage(value => value - 1)}>Más recientes</button><span>Página {formatQuantity(page)} · {formatQuantity(data.count)} acciones</span><button className="identity-secondary" disabled={!data.next} onClick={() => setPage(value => value + 1)}>Anteriores</button></div>
     </>}
   </section>
 }

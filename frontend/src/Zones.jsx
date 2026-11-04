@@ -1,3 +1,4 @@
+import { formatQuantity } from './numberFormat.js'
 import { useEffect, useRef, useState } from 'react'
 import { api } from './identityApi.js'
 
@@ -54,7 +55,7 @@ export default function Zones({ refreshKey, onAccessError }) {
     <section className="identity-card"><p className="identity-eyebrow">ORGANIZA TU ESPACIO</p><h2>Crear zona</h2><p className="identity-hint">Agrupa los espacios de tu restaurante. Después podrás vincular sus mesas.</p>
       <form className="identity-form" onSubmit={event => save(event)}><fieldset disabled={busy}><label>Nombre de la zona<input name="name" required maxLength={100} placeholder="Por ejemplo, Terraza" autoComplete="off" /></label><small>Debe ser único en tu restaurante. La zona se creará activa.</small><button className="identity-primary" type="submit">{busy ? 'Guardando…' : 'Crear zona →'}</button></fieldset></form>
     </section>
-    <section className="identity-card identity-directory"><div className="identity-directory-heading"><div><p className="identity-eyebrow">ESPACIOS DEL RESTAURANTE</p><h2>Tus zonas</h2></div>{rows && <span className="identity-count">{rows.length} zonas</span>}</div>
+    <section className="identity-card identity-directory"><div className="identity-directory-heading"><div><p className="identity-eyebrow">ESPACIOS DEL RESTAURANTE</p><h2>Tus zonas</h2></div>{rows && <span className="identity-count">{formatQuantity(rows.length)} zonas</span>}</div>
       {message && <p className="identity-message" role="status">{message}</p>}{error && <div role="alert"><p className="identity-message">{error}</p><button className="identity-secondary" onClick={() => setVersion(value => value + 1)}>Reintentar consulta</button></div>}
       {!rows ? !error && <p className="identity-hint" role="status">Cargando zonas…</p> : !rows.length ? <p className="identity-empty">Aún no tienes zonas. Crea la primera para organizar tu restaurante.</p> : <ul className="identity-list">{rows.map(row => <li key={row.id}>
         <div className="identity-row-heading"><h3>{row.name}</h3><span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activa' : 'Inactiva'}</span></div>

@@ -1,3 +1,4 @@
+import { formatQuantity } from './numberFormat.js'
 import { useEffect, useRef, useState } from 'react'
 import { api } from './identityApi.js'
 
@@ -70,10 +71,10 @@ export default function Categories({ refreshKey, onAccessError }) {
     <section className="identity-card"><p className="identity-eyebrow">ORGANIZA TU CARTA</p><h2>Crear categoría</h2><p className="identity-hint">Agrupa tus productos y define el orden de las categorías.</p>
       <form className="identity-form" onSubmit={event => save(event)}><fieldset disabled={busy}><label>Nombre de la categoría<input name="name" required maxLength={100} placeholder="Por ejemplo, Bebidas" autoComplete="off" /></label><small>Debe ser único en tu restaurante. Se creará activa y al final de la lista.</small><button className="identity-primary" type="submit">{busy ? 'Guardando…' : 'Crear categoría →'}</button></fieldset></form>
     </section>
-    <section className="identity-card identity-directory"><div className="identity-directory-heading"><div><p className="identity-eyebrow">CATEGORÍAS DEL RESTAURANTE</p><h2>Tus categorías</h2></div>{rows && <span className="identity-count">{rows.length} categorías</span>}</div>
+    <section className="identity-card identity-directory"><div className="identity-directory-heading"><div><p className="identity-eyebrow">CATEGORÍAS DEL RESTAURANTE</p><h2>Tus categorías</h2></div>{rows && <span className="identity-count">{formatQuantity(rows.length)} categorías</span>}</div>
       {message && <p className="identity-message" role="status">{message}</p>}{error && <div role="alert"><p className="identity-message">{error}</p><button className="identity-secondary" onClick={() => setVersion(value => value + 1)}>Reintentar consulta</button></div>}
       {!rows ? !error && <p className="identity-hint" role="status">Cargando categorías…</p> : !rows.length ? <p className="identity-empty">Aún no tienes categorías. Crea la primera para organizar tu carta.</p> : <ul className="identity-list">{rows.map((row, index) => <li key={row.id}>
-        <div className="identity-row-heading"><h3><span className="category-position">{index + 1}</span> {row.name}</h3><span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activa' : 'Inactiva'}</span></div>
+        <div className="identity-row-heading"><h3><span className="category-position">{formatQuantity(index + 1)}</span> {row.name}</h3><span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activa' : 'Inactiva'}</span></div>
         <form className="identity-update identity-role-update" aria-label={`Editar categoría ${row.name}`} onSubmit={event => save(event, row)}><fieldset disabled={busy}><label>Nombre de {row.name}<input name="name" required maxLength={100} value={drafts[row.id] ?? row.name} onChange={event => setDrafts(current => ({ ...current, [row.id]: event.target.value }))} /></label><button className="identity-secondary" type="submit">Guardar nombre</button></fieldset></form>
         <div className="identity-status-control"><button className="identity-secondary" disabled={busy || index === 0} aria-label={`Subir ${row.name}`} onClick={() => move(row, -1)}>↑ Subir</button><button className="identity-secondary" disabled={busy || index === rows.length - 1} aria-label={`Bajar ${row.name}`} onClick={() => move(row, 1)}>↓ Bajar</button><button className="identity-secondary" disabled={busy} onClick={event => {
           if (row.is_active) { returnFocus.current = event.currentTarget; setPending(row) }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { api } from './identityApi.js'
 
-const currency = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 2 })
+import AmountInput from './AmountInput.jsx'
+import { formatMoney, parseAmount } from './numberFormat.js'
 
 export default function Products({ manage }) {
   const [data, setData] = useState(null)
@@ -31,6 +32,7 @@ export default function Products({ manage }) {
     event.preventDefault()
     const form = event.currentTarget
     const fields = Object.fromEntries(new FormData(form))
+    fields.price = parseAmount(fields.price)
     setSaving(true)
     setError('')
     setNotice('')
@@ -54,7 +56,8 @@ export default function Products({ manage }) {
       <form className="identity-form" onSubmit={create}>
         <fieldset disabled={saving || !data?.categories.length}>
           <label>Nombre<input name="name" required maxLength={160} /></label>
-          <label>Precio en COP<input name="price" type="number" required min="0" max="9999999999.99" step="0.01" /></label>
+          <label>Precio en COP<AmountInput name="price" labelId="price-format-hint" /></label>
+          <small id="price-format-hint">Ejemplos: 1,000 · 1'000,000 · 11,999.85. Usa punto para los decimales.</small>
           <label>Categoría<select name="category" required defaultValue=""><option value="" disabled>Selecciona una categoría</option>{data?.categories.map(row => <option key={row.id} value={row.id}>{row.name}</option>)}</select></label>
           <label>Estado<select name="is_active" required defaultValue=""><option value="" disabled>Selecciona un estado</option><option value="true">Activo</option><option value="false">Inactivo</option></select></label>
           <button className="identity-primary" type="submit">{saving ? 'Guardando…' : 'Registrar producto'}</button>
@@ -68,7 +71,7 @@ export default function Products({ manage }) {
       {!data ? !error && <p role="status" className="identity-hint">Cargando productos…</p>
         : !data.products.length ? <p className="identity-empty">{manage ? 'Aún no hay productos registrados.' : 'No hay productos disponibles en la carta.'}</p>
         : <ul className="identity-list">{data.products.map(row => <li key={row.id}>
-          <div className="identity-row-heading"><div><h3>{row.name}</h3><p>{row.category_name} · {currency.format(row.price)}</p></div>
+          <div className="identity-row-heading"><div><h3>{row.name}</h3><p>{row.category_name} · {formatMoney(row.price)}</p></div>
             {manage && <span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span>}</div>
         </li>)}</ul>}
     </section>
