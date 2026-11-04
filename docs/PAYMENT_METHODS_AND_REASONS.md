@@ -21,7 +21,7 @@ Ingresar como Dueño o Administrador en /app:
 
 ## Migraciones para revisión
 
-0010_paymentmethod crea PaymentMethod; 0011_operationreason crea OperationReason y restringe sus tipos. Preparadas y verificadas en QA; no aplicadas a backend/db.sqlite3.
+0010_paymentmethod crea PaymentMethod; 0011_operationreason crea OperationReason y restringe sus tipos. Verificadas en QA y aplicadas a backend/db.sqlite3 el 2026-11-04 con autorización del usuario y respaldo verificado backend/nexo-before-0010-0011-20261104-090340.sqlite3. Integridad y registros previos comprobados.
 
 Aplicación tras revisión y autorización: respaldo verificado y migrate api 0011.
 Reversión: migrate api 0009. Elimina exclusivamente las tablas nuevas y sus registros de configuración; el historial, identidades, categorías, productos y mesas se conservan. Si ya contienen configuraciones que se desean recuperar, respaldar antes de revertir. No usar la reversión como borrado habitual.
