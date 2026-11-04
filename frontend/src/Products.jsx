@@ -5,6 +5,17 @@ import AmountInput from './AmountInput.jsx'
 import { formatMoney, formatQuantity, parseAmount } from './numberFormat.js'
 import { groupMenuProducts } from './menuGroups.js'
 
+// RF-025/026/027/028, RNF-031: decorative icons keep an explicit accessible action name.
+function ProductActionIcon({ type }) {
+  const paths = {
+    status: 'M12 3v9 M6.3 5.7a8 8 0 1 0 11.4 0',
+    price: 'M3 3h7l11 11-7 7L3 10V3Z M7.5 7.5h.01',
+    edit: 'm15 5 4 4 M4 20l4-1 12-12a2.8 2.8 0 0 0-4-4L4 15v5Z',
+    description: 'M7 3h8l4 4v14H5V3h2Z M14 3v5h5 M8 12h8 M8 16h6',
+  }
+  return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d={paths[type]} /></svg>
+}
+
 export default function Products({ manage }) {
   const [data, setData] = useState(null)
   const [revision, setRevision] = useState(0)
@@ -138,14 +149,19 @@ export default function Products({ manage }) {
           <div className="identity-row-heading"><div><h3>{row.name}</h3><p>{row.category_name} · {formatMoney(row.price)}</p></div>
             {manage && <span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span>}</div>
           {row.description && <p className="product-description">{row.description}</p>}
-          {manage && <div className="identity-status-control"><button className="identity-secondary" disabled={saving} aria-label={`${row.is_active ? 'Desactivar' : 'Activar'} producto ${row.name}`} onClick={event => { statusTrigger.current = event.currentTarget; setPendingStatus(row) }}>{row.is_active ? 'Desactivar' : 'Activar'} producto</button></div>}
+          {manage && <div className="product-actions" role="group" aria-label={`Acciones de ${row.name}`}>
+            <button type="button" className="product-action product-action-status" disabled={saving} aria-label={`${row.is_active ? 'Desactivar' : 'Activar'} producto ${row.name}`} onClick={event => { statusTrigger.current = event.currentTarget; setPendingStatus(row) }}><ProductActionIcon type="status" /><span className="product-action-hint" aria-hidden="true">{row.is_active ? 'Desactivar' : 'Activar'} producto</span></button>
+            <button type="button" className="product-action" disabled={saving} aria-label={`Cambiar precio de ${row.name}`} aria-expanded={editing === `${row.id}:price`} onClick={() => { setEditing(current => current === `${row.id}:price` ? null : `${row.id}:price`); setNotice('') }}><ProductActionIcon type="price" /><span className="product-action-hint" aria-hidden="true">Cambiar precio</span></button>
+            <button type="button" className="product-action" disabled={saving} aria-label={`Editar producto ${row.name}`} aria-expanded={editing === `${row.id}:details`} onClick={() => { setEditing(current => current === `${row.id}:details` ? null : `${row.id}:details`); setNotice('') }}><ProductActionIcon type="edit" /><span className="product-action-hint" aria-hidden="true">Editar producto</span></button>
+            <button type="button" className="product-action" disabled={saving} aria-label={`Editar descripción de ${row.name}`} aria-expanded={editing === row.id} onClick={() => { setEditing(current => current === row.id ? null : row.id); setDescription(row.description); setNotice('') }}><ProductActionIcon type="description" /><span className="product-action-hint" aria-hidden="true">Editar descripción</span></button>
+          </div>}
           {manage && (editing === `${row.id}:price` ? <form className="identity-form product-description-form" onSubmit={event => saveProduct(event, row, 'price')}>
             <fieldset disabled={saving}>
               <label>Nuevo precio de {row.name}<AmountInput name="price" labelId={`price-hint-${row.id}`} defaultValue={row.price} /></label>
               <small id={`price-hint-${row.id}`}>COP. Usa punto para los decimales. Ejemplo: 11,999.85.</small>
               <div className="identity-status-control"><button className="identity-primary" type="submit">{saving ? 'Guardando…' : 'Guardar precio'}</button><button className="identity-secondary" type="button" onClick={() => setEditing(null)}>Cancelar precio</button></div>
             </fieldset>
-          </form> : <div className="identity-status-control"><button className="identity-secondary" disabled={saving} aria-label={`Cambiar precio de ${row.name}`} onClick={() => { setEditing(`${row.id}:price`); setNotice('') }}>Cambiar precio</button></div>)}
+          </form> : null)}
           {manage && (editing === `${row.id}:details` ? <form key={row.id} className="identity-form product-description-form" onSubmit={event => saveProduct(event, row)}>
             <fieldset disabled={saving}>
               <label>Nombre de {row.name}<input autoFocus name="name" required maxLength={160} defaultValue={row.name} /></label>
@@ -154,14 +170,14 @@ export default function Products({ manage }) {
               <small>El precio y la disponibilidad se conservan.</small>
               <div className="identity-status-control"><button className="identity-primary" type="submit">{saving ? 'Guardando…' : 'Guardar producto'}</button><button className="identity-secondary" type="button" onClick={() => setEditing(null)}>Cancelar edición</button></div>
             </fieldset>
-          </form> : <div className="identity-status-control"><button className="identity-secondary" disabled={saving} aria-label={`Editar producto ${row.name}`} onClick={() => { setEditing(`${row.id}:details`); setNotice('') }}>Editar producto</button></div>)}
+          </form> : null)}
           {manage && (editing === row.id ? <form className="identity-form product-description-form" onSubmit={event => saveDescription(event, row)}>
             <fieldset disabled={saving}>
               <label>Descripción de {row.name}<textarea autoFocus rows={4} value={description} onChange={event => setDescription(event.target.value)} /></label>
               <small>Puedes dejarla vacía. Solo se modificará la descripción.</small>
               <div className="identity-status-control"><button className="identity-primary" type="submit">{saving ? 'Guardando…' : 'Guardar descripción'}</button><button className="identity-secondary" type="button" onClick={() => setEditing(null)}>Cancelar</button></div>
             </fieldset>
-          </form> : <div className="identity-status-control"><button className="identity-secondary" disabled={saving} aria-label={`Editar descripción de ${row.name}`} onClick={() => { setEditing(row.id); setDescription(row.description); setNotice('') }}>Editar descripción</button></div>)}
+          </form> : null)}
         </li>)}</ul>}
     </section>
     {pendingStatus && <div className="identity-confirm-overlay"><section className="identity-card identity-confirm" role="dialog" aria-modal="true" aria-labelledby="product-status-title" aria-describedby="product-status-description" onKeyDown={event => {
