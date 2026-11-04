@@ -34,10 +34,10 @@ Reversión: `backend/.venv/Scripts/python.exe backend/manage.py migrate api 0007
 - `manage.py check`, `makemigrations --check --dry-run`, lint y build correctos. Frontend JavaScript sin script de comprobación de tipos; no se declara typecheck ejecutado.
 - Base temporal nueva: aplicar 0008 → revertir a 0007 → reaplicar 0008. Integridad SQLite correcta; se conservaron 3 usuarios, 2 restaurantes, 3 membresías, 1 zona, 1 mesa y 1 evento de auditoría de la fixture QA.
 - Navegador con backend y base QA aislados: crear Bebidas/Entradas, ordenar, renombrar a Bebidas frías, desactivar con confirmación, recargar, reactivar y rechazar duplicado. Historial con anterior/nuevo y filtro por cambio de orden. Segundo restaurante sin categorías ajenas; Mesero sin gestión incluso manipulando hash. Vista móvil de 390 px, ancho de contenido igual al disponible, sin desbordamiento horizontal.
-- La base local `backend/db.sqlite3` no se migró ni se utilizaron cuentas reales para QA.
+- QA se realizó con una base temporal y sin cuentas reales. El usuario autorizó la aplicación local de 0008 el 2026-11-03. Se verificó el respaldo `backend/nexo-before-0008-20261103-205108.sqlite3` y, tras migrar, se comprobó la integridad SQLite y se compararon los registros existentes de usuarios, restaurantes, membresías, zonas, mesas e historial con el respaldo.
 
 ## Pendientes para validar DN-39 completo
 
-- Revisión y aplicación autorizada de 0008 a la base local; validación final del usuario.
+- Validación final del usuario.
 - CA-02 de Jira, orden y activación reflejados en la carta de productos reales: pendiente de DN-40 / RF-024. La carta de demostración y su archivo JSON no se modificaron. Esta entrega no declara ese CA cumplido ni DN-39 cerrado.
 - No se cambiaron estados ni se publicaron comentarios en Jira. DN-40–44, DN-36 y DN-37 no se iniciaron.
