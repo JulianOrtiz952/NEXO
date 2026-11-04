@@ -25,3 +25,11 @@ Cuatro pruebas nuevas: exactitud/límites/cero, campos inválidos, permisos/aisl
 Interfaz con confirmación al activar/desactivar, Escape/Cancelar, retorno de foco y navegación de teclado contenida. Navegador QA: cancelar no cambia el estado; confirmar desactivación oculta el producto de Carta; reactivar lo restaura con el precio actualizado. Siete pruebas de disponibilidad cubren ciclo, categoría inactiva, permisos/IDs ajenos, validación/revocación, rollback, reautorización bajo bloqueo y desactivación concurrente idempotente con una sola auditoría.
 
 El rechazo de un producto inactivo al crear **nuevos pedidos** y la conservación de **pedidos/ventas anteriores** quedan pendientes de esos módulos. El filtro de Carta no sustituye la futura validación en servidor al enviar pedidos. Sin borrado, migraciones ni cierre en Jira.
+
+## DN-47 / RF-031 — Carta virtual
+
+La carta autenticada agrupa visualmente por ID de categoría y conserva el orden recibido del servidor (posición de categoría y nombre de producto). Se muestran nombre, descripción y precio actual en tarjetas NEXO, con encabezados semánticos y adaptación móvil. No se añaden controles de pedidos ficticios ni datos de demostración. Solo aparecen productos activos en categorías activas del restaurante autorizado.
+
+Cuatro pruebas API de aceptación: igualdad de catálogo para Mesero/Caja, orden/estados/vacío, aislamiento bidireccional ante parámetros manipulados y rechazo de roles/escrituras. Una prueba nativa de Node verifica agrupación por ID sin mezclar categorías homónimas ni cambiar orden/datos. Once pruebas de carta/disponibilidad, lint/build y tres pruebas de frontend correctos.
+
+Navegador: Mesero y Caja ven secciones Entradas/Bebidas con los valores reales de QA, sin edición. Restaurante B solo ve sus propios productos. Escritorio y móvil; geometría DOM de tarjetas/encabezados dentro del viewport, sin desbordamiento horizontal. Evidencias `dn47-carta-escritorio.png` y `dn47-carta-movil.png`; las capturas de página completa del navegador integrado pueden presentar recorte de escala, por lo que el ancho se comprobó también con geometría DOM. Viewport restaurado al terminar.

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from './identityApi.js'
 
 import AmountInput from './AmountInput.jsx'
-import { formatMoney, parseAmount } from './numberFormat.js'
+import { formatMoney, formatQuantity, parseAmount } from './numberFormat.js'
+import { groupMenuProducts } from './menuGroups.js'
 
 export default function Products({ manage }) {
   const [data, setData] = useState(null)
@@ -129,6 +130,10 @@ export default function Products({ manage }) {
       <h2>{manage ? 'Productos registrados' : 'Carta del restaurante'}</h2>
       {!data ? !error && <p role="status" className="identity-hint">Cargando productos…</p>
         : !data.products.length ? <p className="identity-empty">{manage ? 'Aún no hay productos registrados.' : 'No hay productos disponibles en la carta.'}</p>
+        : !manage ? <div className="menu-categories">{groupMenuProducts(data.products).map(group => <section key={group.id} aria-labelledby={`menu-category-${group.id}`}>
+          <div className="menu-category-heading"><h3 id={`menu-category-${group.id}`}>{group.name}</h3><span className="identity-count">{formatQuantity(group.products.length)} {group.products.length === 1 ? 'producto' : 'productos'}</span></div>
+          <ul className="menu-product-list">{group.products.map(row => <li key={row.id}><div className="menu-product-heading"><h4>{row.name}</h4><p>{formatMoney(row.price)}</p></div>{row.description && <p className="product-description">{row.description}</p>}</li>)}</ul>
+        </section>)}</div>
         : <ul className="identity-list">{data.products.map(row => <li key={row.id}>
           <div className="identity-row-heading"><div><h3>{row.name}</h3><p>{row.category_name} · {formatMoney(row.price)}</p></div>
             {manage && <span className={`identity-badge ${row.is_active ? '' : 'identity-inactive'}`}>{row.is_active ? 'Activo' : 'Inactivo'}</span>}</div>
